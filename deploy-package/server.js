@@ -5,7 +5,11 @@ const helmet = require('helmet');
 const path = require('path');
 
 const app = express();
+// Use Render's PORT environment variable, or default to 3000
 const PORT = process.env.PORT || 3000;
+
+// Log the port we're using
+console.log(`Server configured to use port: ${PORT}`);
 
 // Security middleware
 app.use(helmet());
@@ -40,9 +44,12 @@ app.get('/health', (req, res) => {
 
 // Create a new game session
 app.post('/api/game/session', (req, res) => {
+  console.log('Received request to create game session:', req.body);
+  
   const { player1Name, player2Name, gameType } = req.body;
   
   if (!player1Name || !player2Name || !gameType) {
+    console.log('Missing required fields:', { player1Name, player2Name, gameType });
     return res.status(400).json({ error: 'Missing required fields: player1Name, player2Name, gameType' });
   }
   
@@ -62,6 +69,8 @@ app.post('/api/game/session', (req, res) => {
   };
   
   gameSessions.set(sessionId, session);
+  
+  console.log('Created game session:', sessionId);
   
   res.json({
     sessionId,

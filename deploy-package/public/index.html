@@ -632,7 +632,15 @@
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             // Set backend URL to current host
-            backendUrl = window.location.origin;
+            // For Render deployment, we need to ensure we're using the correct URL
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                backendUrl = window.location.origin;
+            } else {
+                // For production deployments, use the same origin
+                backendUrl = window.location.origin;
+            }
+            
+            console.log('Backend URL set to:', backendUrl);
             
             initializeSpeechRecognition();
             setupEventListeners();
@@ -673,9 +681,13 @@
         }
 
         async function startGame() {
+            console.log('Start game function called');
             player1Name = document.getElementById('player1Name').value.trim();
             player2Name = document.getElementById('player2Name').value.trim();
             selectedGame = document.getElementById('gameSelect').value;
+
+            console.log('Player names:', player1Name, player2Name);
+            console.log('Selected game:', selectedGame);
 
             if (!player1Name || !player2Name) {
                 alert('Please enter names for both players.');
@@ -684,6 +696,7 @@
 
             // Create game session on backend
             try {
+                console.log('Creating game session with backend URL:', backendUrl);
                 const response = await fetch(`${backendUrl}/api/game/session`, {
                     method: 'POST',
                     headers: {
@@ -696,12 +709,16 @@
                     })
                 });
 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error('Failed to create game session:', errorText);
                     throw new Error(`Failed to create game session: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('Session created successfully:', data);
                 sessionId = data.sessionId;
                 
                 // Switch to game screen
