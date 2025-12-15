@@ -631,6 +631,8 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+            
             // Set backend URL to current host
             // For Render deployment, we need to ensure we're using the correct URL
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -644,7 +646,25 @@
             
             initializeSpeechRecognition();
             setupEventListeners();
+            
+            console.log('App initialization complete');
         });
+        
+        // Also set up a fallback in case DOMContentLoaded doesn't fire
+        if (document.readyState === 'loading') {
+            console.log('Document still loading, waiting for DOMContentLoaded');
+        } else {
+            console.log('Document already loaded, initializing app');
+            // Document is already loaded
+            setTimeout(function() {
+                if (typeof backendUrl === 'undefined') {
+                    backendUrl = window.location.origin;
+                    console.log('Fallback: Backend URL set to:', backendUrl);
+                    initializeSpeechRecognition();
+                    setupEventListeners();
+                }
+            }, 100);
+        }
 
         function initializeSpeechRecognition() {
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -674,29 +694,98 @@
         }
 
         function setupEventListeners() {
-            document.getElementById('startGameBtn').addEventListener('click', startGame);
-            document.getElementById('micButton').addEventListener('click', toggleRecording);
-            document.getElementById('skipTurnBtn').addEventListener('click', skipTurn);
-            document.getElementById('newGameBtn').addEventListener('click', resetGame);
+            console.log('Setting up event listeners');
+            const startBtn = document.getElementById('startGameBtn');
+            const micBtn = document.getElementById('micButton');
+            const skipBtn = document.getElementById('skipTurnBtn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            
+            console.log('Elements found:', {
+                startBtn: !!startBtn,
+                micBtn: !!micBtn,
+                skipBtn: !!skipBtn,
+                newGameBtn: !!newGameBtn
+            });
+            
+            if (startBtn) {
+                startBtn.addEventListener('click', function(e) {
+                    console.log('START BUTTON CLICKED');
+                    console.log('Event:', e);
+                    console.log('Current target:', e.currentTarget);
+                    startGame();
+                });
+                console.log('Start button event listener added');
+            } else {
+                console.error('Start button not found!');
+            }
+            
+            if (micBtn) {
+                micBtn.addEventListener('click', function(e) {
+                    console.log('MIC BUTTON CLICKED');
+                    toggleRecording();
+                });
+                console.log('Mic button event listener added');
+            }
+            
+            if (skipBtn) {
+                skipBtn.addEventListener('click', function(e) {
+                    console.log('SKIP BUTTON CLICKED');
+                    skipTurn();
+                });
+                console.log('Skip button event listener added');
+            }
+            
+            if (newGameBtn) {
+                newGameBtn.addEventListener('click', function(e) {
+                    console.log('NEW GAME BUTTON CLICKED');
+                    resetGame();
+                });
+                console.log('New game button event listener added');
+            }
+            
+            console.log('All event listeners set up');
         }
 
         async function startGame() {
-            console.log('Start game function called');
+            console.log('=== START GAME FUNCTION CALLED ===');
+            console.log('Current DOM state:');
+            console.log('- Player 1 input value:', document.getElementById('player1Name').value);
+            console.log('- Player 2 input value:', document.getElementById('player2Name').value);
+            console.log('- Game select value:', document.getElementById('gameSelect').value);
+            
             player1Name = document.getElementById('player1Name').value.trim();
             player2Name = document.getElementById('player2Name').value.trim();
             selectedGame = document.getElementById('gameSelect').value;
 
-            console.log('Player names:', player1Name, player2Name);
-            console.log('Selected game:', selectedGame);
+            console.log('Trimmed values:');
+            console.log('- Player 1:', player1Name);
+            console.log('- Player 2:', player2Name);
+            console.log('- Game type:', selectedGame);
 
             if (!player1Name || !player2Name) {
+                console.log('ERROR: Missing player names');
                 alert('Please enter names for both players.');
                 return;
             }
 
+            console.log('All validation passed, proceeding to create session');
+            console.log('Backend URL:', backendUrl);
+
+            // Show loading state
+            const startBtn = document.getElementById('startGameBtn');
+            const originalText = startBtn.innerHTML;
+            startBtn.innerHTML = '<div class="loading"></div> Starting Game...';
+            startBtn.disabled = true;
+
             // Create game session on backend
             try {
-                console.log('Creating game session with backend URL:', backendUrl);
+                console.log('Making POST request to:', `${backendUrl}/api/game/session`);
+                console.log('Request payload:', {
+                    player1Name,
+                    player2Name,
+                    gameType: selectedGame
+                });
+                
                 const response = await fetch(`${backendUrl}/api/game/session`, {
                     method: 'POST',
                     headers: {
@@ -709,19 +798,30 @@
                     })
                 });
 
-                console.log('Response status:', response.status);
+                console.log('Response received:');
+                console.log('- Status:', response.status);
+                console.log('- Status text:', response.statusText);
                 
+                // Log response headers
+                console.log('- Response headers:');
+                for (let [key, value] of response.headers.entries()) {
+                    console.log(`  ${key}: ${value}`);
+                }
+
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Failed to create game session:', errorText);
+                    console.error('FAILED: Server returned error status');
+                    console.error('- Error text:', errorText);
                     throw new Error(`Failed to create game session: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
-                console.log('Session created successfully:', data);
+                console.log('SUCCESS: Session created');
+                console.log('- Data received:', data);
                 sessionId = data.sessionId;
                 
                 // Switch to game screen
+                console.log('Switching to game screen');
                 document.getElementById('setupScreen').classList.add('hidden');
                 document.getElementById('gameScreen').classList.remove('hidden');
                 
@@ -748,9 +848,21 @@
                 document.getElementById('micButton').disabled = false;
                 document.getElementById('skipTurnBtn').disabled = false;
                 
+                console.log('Game started successfully!');
+                
             } catch (error) {
-                console.error('Error creating game session:', error);
+                console.error('=== CATCH BLOCK REACHED ===');
+                console.error('Full error object:', error);
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
                 alert(`Failed to start game: ${error.message}`);
+            } finally {
+                // Restore button state
+                startBtn.innerHTML = originalText;
+                startBtn.disabled = false;
+                console.log('Button state restored');
             }
         }
 

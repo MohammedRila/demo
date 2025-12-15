@@ -19,6 +19,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('- Headers:', req.headers);
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('- Body:', req.body);
+  }
+  next();
+});
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -44,14 +54,35 @@ app.get('/health', (req, res) => {
 
 // Create a new game session
 app.post('/api/game/session', (req, res) => {
-  console.log('Received request to create game session:', req.body);
+  console.log('=== GAME SESSION CREATION REQUEST ===');
+  console.log('Request received at:', new Date().toISOString());
+  console.log('Request body:', req.body);
   
   const { player1Name, player2Name, gameType } = req.body;
   
+  console.log('Extracted values:');
+  console.log('- player1Name:', player1Name);
+  console.log('- player2Name:', player2Name);
+  console.log('- gameType:', gameType);
+  
   if (!player1Name || !player2Name || !gameType) {
-    console.log('Missing required fields:', { player1Name, player2Name, gameType });
-    return res.status(400).json({ error: 'Missing required fields: player1Name, player2Name, gameType' });
+    console.log('VALIDATION FAILED: Missing required fields');
+    console.log('Missing fields check:');
+    console.log('- player1Name exists:', !!player1Name);
+    console.log('- player2Name exists:', !!player2Name);
+    console.log('- gameType exists:', !!gameType);
+    
+    return res.status(400).json({ 
+      error: 'Missing required fields', 
+      details: {
+        player1Name: !!player1Name,
+        player2Name: !!player2Name,
+        gameType: !!gameType
+      }
+    });
   }
+  
+  console.log('Validation passed, creating session');
   
   const sessionId = generateSessionId();
   const session = {
@@ -70,12 +101,16 @@ app.post('/api/game/session', (req, res) => {
   
   gameSessions.set(sessionId, session);
   
-  console.log('Created game session:', sessionId);
+  console.log('Session created successfully:');
+  console.log('- Session ID:', sessionId);
+  console.log('- Session data:', JSON.stringify(session, null, 2));
   
   res.json({
     sessionId,
     message: 'Game session created successfully'
   });
+  
+  console.log('Response sent to client');
 });
 
 // Submit a player turn
