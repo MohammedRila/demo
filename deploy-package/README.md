@@ -140,3 +140,24 @@ Check the console output for detailed error messages and debugging information.
 ## License
 
 MIT License - see LICENSE file for details.
+
+# AI Voice Game - Deployed Version
+
+This is the deployed version of the AI Voice Game application. The application has been restructured for proper deployment on Render.
+
+## Features
+- Secure backend with Perplexity API integration
+- Dual-mode operation (5-minute game + 5-minute moderation)
+- Real-time AI moderation with three-strike rule enforcement
+- Voice recognition for player interactions
+
+## Deployment Notes
+- All API keys are stored securely on the backend
+- Frontend communicates with backend via REST API
+- Environment variables configured through Render dashboard
+
+## File Structure
+- `server.js` - Main backend application
+- `public/index.html` - Frontend application
+- `package.json` - Node.js dependencies and scripts
+- `.env` - Environment variables (not committed to repo)
