@@ -389,6 +389,12 @@ app.post('/api/webrtc/room', (req, res) => {
     });
   }
   
+  // Check if both participants have the same name
+  if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
+    console.log('WARNING: Both participants have the same name, appending identifiers');
+    // We'll handle this on the client side by adding Participant 1/2 labels
+  }
+  
   console.log('Validation passed, creating room');
   
   const roomId = generateSessionId(); // Reuse existing function
@@ -408,7 +414,11 @@ app.post('/api/webrtc/room', (req, res) => {
   
   res.json({
     roomId,
-    message: 'WebRTC room created successfully'
+    message: 'WebRTC room created successfully',
+    participantLabels: {
+      participant1: `${participant1Name} (Participant 1)`,
+      participant2: `${participant2Name} (Participant 2)`
+    }
   });
   
   console.log('Response sent to client');

@@ -626,6 +626,16 @@
                 return;
             }
 
+            // Handle same usernames
+            let displayName1 = participant1Name;
+            let displayName2 = participant2Name;
+            
+            if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
+                displayName1 = `${participant1Name} (Participant 1)`;
+                displayName2 = `${participant2Name} (Participant 2)`;
+                console.log('Same names detected, using display names:', displayName1, displayName2);
+            }
+
             try {
                 // Get user media (microphone)
                 console.log('Getting user media...');
@@ -652,7 +662,18 @@
 
                 const data = await response.json();
                 roomId = data.roomId;
+                
+                // Use display names from server response if provided
+                if (data.participantLabels) {
+                    displayName1 = data.participantLabels.participant1;
+                    displayName2 = data.participantLabels.participant2;
+                }
+                
                 console.log('Room created with ID:', roomId);
+                
+                // Store display names for UI
+                window.displayName1 = displayName1;
+                window.displayName2 = displayName2;
                 
                 // Create peer connection
                 await createPeerConnection();
@@ -673,10 +694,10 @@
                 updateModeIndicator('audio');
                 startTimer();
                 document.getElementById('micButton').disabled = false;
-                document.getElementById('aiResponse').innerHTML = '🎙️ Room joined successfully! You can now speak.';
+                document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${displayName1}.`;
                 
                 // Add welcome message to conversation
-                addMessageToConversation('System', 'Room joined successfully. You can now speak.', 'system');
+                addMessageToConversation('System', `Room joined successfully. You are ${displayName1}.`, 'system');
                 
                 console.log('Room joined successfully!');
                 
@@ -846,8 +867,10 @@
             // In a real implementation, audio is streamed via WebRTC
             // For demo purposes, we'll simulate speech recognition
             setTimeout(() => {
-                const simulatedTranscript = "This is a simulated voice message from participant.";
-                handleTranscript(simulatedTranscript);
+                // Use the participant's display name
+                const senderName = window.displayName1 || participant1Name;
+                const simulatedTranscript = `This is a simulated voice message from ${senderName}.`;
+                handleTranscript(simulatedTranscript, senderName);
             }, 2000);
             
             document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> Listening...';
@@ -866,12 +889,14 @@
             console.log('Recording stopped');
         }
 
-        async function handleTranscript(transcript) {
+        async function handleTranscript(transcript, senderName = null) {
             if (!transcript.trim()) return;
             
+            // Use provided sender name or default to participant1Name
+            const sender = senderName || participant1Name;
+            
             // Add to conversation history
-            const senderName = participant1Name; // In real implementation, we'd know who's speaking
-            addMessageToConversation(senderName, transcript);
+            addMessageToConversation(sender, transcript);
             
             // Send to backend for AI moderation
             try {
@@ -883,7 +908,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        speaker: senderName,
+                        speaker: sender,
                         content: transcript
                     })
                 });
