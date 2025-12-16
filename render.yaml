@@ -2,6 +2,7 @@ services:
   - type: web
     name: ai-voice-game
     env: node
+    rootDir: deploy-package
     buildCommand: npm install
     startCommand: npm start
     envVars:
