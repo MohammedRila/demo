@@ -424,6 +424,113 @@ app.post('/api/webrtc/room', (req, res) => {
   console.log('Response sent to client');
 });
 
+// Add endpoint to create a room and get a shareable link
+app.post('/api/webrtc/room/create-link', (req, res) => {
+  console.log('=== CREATE ROOM LINK REQUEST ===');
+  console.log('Request received at:', new Date().toISOString());
+  console.log('Request body:', req.body);
+  
+  const { participant1Name, participant2Name } = req.body;
+  
+  console.log('Extracted values:');
+  console.log('- participant1Name:', participant1Name);
+  console.log('- participant2Name:', participant2Name);
+  
+  if (!participant1Name || !participant2Name) {
+    console.log('VALIDATION FAILED: Missing required fields');
+    return res.status(400).json({ 
+      error: 'Missing required fields: participant1Name, participant2Name'
+    });
+  }
+  
+  // Handle same usernames
+  let displayName1 = participant1Name;
+  let displayName2 = participant2Name;
+  
+  if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
+    displayName1 = `${participant1Name} (Host)`;
+    displayName2 = `${participant2Name} (Guest)`;
+    console.log('Same names detected, using display names:', displayName1, displayName2);
+  }
+  
+  console.log('Validation passed, creating room');
+  
+  const roomId = generateSessionId(); // Reuse existing function
+  const room = {
+    id: roomId,
+    participant1Name: displayName1,
+    participant2Name: displayName2,
+    createdAt: new Date(),
+    conversationHistory: [],
+    bannedParticipants: [],
+    hostJoined: false,
+    guestJoined: false
+  };
+  
+  gameSessions.set(roomId, room); // Reuse existing storage
+  
+  console.log('Room created successfully:');
+  console.log('- Room ID:', roomId);
+  
+  // Generate shareable link
+  const roomLink = `${req.protocol}://${req.get('host')}/webrtc-room/${roomId}`;
+  
+  res.json({
+    roomId,
+    roomLink,
+    message: 'WebRTC room created successfully'
+  });
+  
+  console.log('Response sent to client');
+});
+
+// Add endpoint to get room info by ID
+app.get('/api/webrtc/room/:roomId', (req, res) => {
+  const { roomId } = req.params;
+  
+  const room = gameSessions.get(roomId);
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  res.json({
+    roomId: room.id,
+    participant1Name: room.participant1Name,
+    participant2Name: room.participant2Name,
+    createdAt: room.createdAt,
+    hostJoined: room.hostJoined,
+    guestJoined: room.guestJoined
+  });
+});
+
+// Modified existing room endpoint to handle joining
+app.post('/api/webrtc/room/:roomId/join', (req, res) => {
+  const { roomId } = req.params;
+  const { participantRole, participantName } = req.body; // 'host' or 'guest'
+  
+  const room = gameSessions.get(roomId);
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  // Mark participant as joined
+  if (participantRole === 'host') {
+    room.hostJoined = true;
+  } else if (participantRole === 'guest') {
+    room.guestJoined = true;
+  }
+  
+  res.json({
+    success: true,
+    message: `${participantRole} joined successfully`,
+    roomId: room.id,
+    participantLabels: {
+      host: room.participant1Name,
+      guest: room.participant2Name
+    }
+  });
+});
+
 app.post('/api/webrtc/:roomId/moderate', async (req, res) => {
   const { roomId } = req.params;
   const { speaker, content } = req.body;
@@ -603,6 +710,12 @@ app.use((req, res) => {
   // If requesting the WebRTC room page specifically
   if (req.path === '/webrtc-room') {
     res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
+  } else if (req.path === '/webrtc-room-link') {
+    // Serve the room link page
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room-link.html'));
+  } else if (req.path.startsWith('/webrtc-room/') && req.path.length > 12) {
+    // Serve the room link page for room links
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room-link.html'));
   } else {
     // Serve the original game page for other routes
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

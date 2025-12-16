@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Voice Room - Join via Link</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --danger-color: #e63946;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --audio-bg: linear-gradient(135deg, #4361ee, #3a0ca3);
+            --moderator-bg: linear-gradient(135deg, #f72585, #b5179e);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1d2b64, #f8cdda);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .screen {
+            padding: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .btn-block {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .room-info {
+            background: var(--light-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .room-info-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .link-display {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 15px 0;
+        }
+
+        .copy-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .connection-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ WebRTC Voice Room</h1>
+            <p class="subtitle">Join via Link</p>
+        </header>
+
+        <!-- Create Room Screen -->
+        <div class="screen" id="createRoomScreen">
+            <div class="card">
+                <h2 class="card-title">🏠 Create New Room</h2>
+                <div class="input-group">
+                    <label for="hostName">Your Name (Host):</label>
+                    <input type="text" id="hostName" placeholder="Enter your name">
+                </div>
+                <div class="input-group">
+                    <label for="guestName">Guest Name:</label>
+                    <input type="text" id="guestName" placeholder="Enter guest name">
+                </div>
+                
+                <button class="btn btn-primary btn-block" id="createRoomBtn">
+                    🚀 Create Room & Get Link
+                </button>
+            </div>
+        </div>
+
+        <!-- Room Created Screen -->
+        <div class="screen hidden" id="roomCreatedScreen">
+            <div class="card">
+                <h2 class="card-title">✅ Room Created Successfully</h2>
+                
+                <div class="room-info">
+                    <div class="room-info-item">
+                        <strong>Host:</strong> <span id="hostDisplayName"></span>
+                    </div>
+                    <div class="room-info-item">
+                        <strong>Guest:</strong> <span id="guestDisplayName"></span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Share this link with your guest:</label>
+                    <div class="link-display" id="roomLinkDisplay"></div>
+                    <button class="copy-btn" id="copyLinkBtn">📋 Copy Link</button>
+                </div>
+                
+                <button class="btn btn-success btn-block" id="joinAsHostBtn">
+                    🎙️ Join as Host
+                </button>
+                
+                <div class="connection-status connecting" id="hostConnectionStatus">
+                    🔌 Waiting for host to join...
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div class="screen hidden" id="joinRoomScreen">
+            <div class="card">
+                <h2 class="card-title">🚪 Join Room as Guest</h2>
+                
+                <div class="room-info">
+                    <div class="room-info-item">
+                        <strong>Room ID:</strong> <span id="roomIdDisplay"></span>
+                    </div>
+                    <div class="room-info-item">
+                        <strong>Host:</strong> <span id="hostNameDisplay"></span>
+                    </div>
+                    <div class="room-info-item">
+                        <strong>Guest:</strong> <span id="guestNameDisplay"></span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="guestJoinName">Your Name:</label>
+                    <input type="text" id="guestJoinName" placeholder="Enter your name">
+                </div>
+                
+                <button class="btn btn-primary btn-block" id="joinAsGuestBtn">
+                    🎙️ Join as Guest
+                </button>
+                
+                <div class="connection-status connecting" id="guestConnectionStatus">
+                    🔌 Connecting to room...
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>WebRTC Voice Room with AI Moderator &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script>
+        // Application state
+        let backendUrl = '';
+        let roomId = null;
+        let roomLink = null;
+        let hostName = '';
+        let guestName = '';
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+            
+            // Set backend URL to current host
+            backendUrl = window.location.origin;
+            console.log('Backend URL set to:', backendUrl);
+            
+            setupEventListeners();
+            
+            // Check if we're joining via a room link
+            const urlParts = window.location.pathname.split('/');
+            if (urlParts.length >= 3 && urlParts[urlParts.length - 2] === 'webrtc-room') {
+                roomId = urlParts[urlParts.length - 1];
+                showJoinRoomScreen(roomId);
+            }
+            
+            console.log('App initialization complete');
+        });
+
+        function setupEventListeners() {
+            // Create room button
+            document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+            
+            // Copy link button
+            document.getElementById('copyLinkBtn').addEventListener('click', copyRoomLink);
+            
+            // Join as host button
+            document.getElementById('joinAsHostBtn').addEventListener('click', function() {
+                joinRoom('host', hostName);
+            });
+            
+            // Join as guest button
+            document.getElementById('joinAsGuestBtn').addEventListener('click', function() {
+                const guestJoinName = document.getElementById('guestJoinName').value.trim();
+                if (!guestJoinName) {
+                    alert('Please enter your name');
+                    return;
+                }
+                joinRoom('guest', guestJoinName);
+            });
+        }
+
+        async function createRoom() {
+            hostName = document.getElementById('hostName').value.trim();
+            guestName = document.getElementById('guestName').value.trim();
+            
+            if (!hostName || !guestName) {
+                alert('Please enter both your name and the guest name');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${backendUrl}/api/webrtc/room/create-link`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        participant1Name: hostName,
+                        participant2Name: guestName
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to create room: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                roomId = data.roomId;
+                roomLink = data.roomLink;
+                
+                // Display room info
+                document.getElementById('hostDisplayName').textContent = hostName;
+                document.getElementById('guestDisplayName').textContent = guestName;
+                document.getElementById('roomLinkDisplay').textContent = roomLink;
+                
+                // Show room created screen
+                document.getElementById('createRoomScreen').classList.add('hidden');
+                document.getElementById('roomCreatedScreen').classList.remove('hidden');
+                
+                console.log('Room created successfully:', roomId);
+                
+            } catch (error) {
+                console.error('Error creating room:', error);
+                alert(`Failed to create room: ${error.message}`);
+            }
+        }
+
+        function copyRoomLink() {
+            navigator.clipboard.writeText(roomLink).then(() => {
+                const copyBtn = document.getElementById('copyLinkBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy link:', err);
+                alert('Failed to copy link. Please copy it manually.');
+            });
+        }
+
+        async function showJoinRoomScreen(roomId) {
+            try {
+                const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        alert('Room not found. The link may have expired.');
+                        window.location.href = '/webrtc-room-link';
+                        return;
+                    }
+                    throw new Error(`Failed to get room info: ${response.status}`);
+                }
+                
+                const roomData = await response.json();
+                
+                // Display room info
+                document.getElementById('roomIdDisplay').textContent = roomData.roomId;
+                document.getElementById('hostNameDisplay').textContent = roomData.participant1Name;
+                document.getElementById('guestNameDisplay').textContent = roomData.participant2Name;
+                
+                // Show join room screen
+                document.getElementById('createRoomScreen').classList.add('hidden');
+                document.getElementById('joinRoomScreen').classList.remove('hidden');
+                
+                console.log('Join room screen displayed for room:', roomId);
+                
+            } catch (error) {
+                console.error('Error fetching room info:', error);
+                alert(`Failed to join room: ${error.message}`);
+            }
+        }
+
+        async function joinRoom(role, name) {
+            if (!roomId) {
+                alert('Room ID not found');
+                return;
+            }
+            
+            try {
+                // Update connection status
+                const statusElement = role === 'host' ? 
+                    document.getElementById('hostConnectionStatus') : 
+                    document.getElementById('guestConnectionStatus');
+                
+                statusElement.className = 'connection-status connecting';
+                statusElement.innerHTML = '🔌 Connecting to room...';
+                
+                const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        participantRole: role,
+                        participantName: name
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to join room: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                statusElement.className = 'connection-status connected';
+                statusElement.innerHTML = '✅ Connected to room!';
+                
+                // Redirect to main WebRTC room page
+                setTimeout(() => {
+                    window.location.href = `/webrtc-room?roomId=${roomId}&role=${role}&name=${encodeURIComponent(name)}`;
+                }, 1000);
+                
+                console.log(`${role} joined room successfully`);
+                
+            } catch (error) {
+                console.error('Error joining room:', error);
+                
+                const statusElement = role === 'host' ? 
+                    document.getElementById('hostConnectionStatus') : 
+                    document.getElementById('guestConnectionStatus');
+                
+                statusElement.className = 'connection-status disconnected';
+                statusElement.innerHTML = `❌ Failed to connect: ${error.message}`;
+                
+                alert(`Failed to join room: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
