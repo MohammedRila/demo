@@ -3,10 +3,18 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
 // Use Render's PORT environment variable, or default to 3000
 const PORT = process.env.PORT || 3000;
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Create WebSocket server
+const wss = new WebSocket.Server({ server });
 
 // Log the port we're using
 console.log(`Server configured to use port: ${PORT}`);
@@ -25,11 +33,84 @@ app.use(helmet({
     },
   },
 }));
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Log environment variables for debugging (remove in production)
+console.log('PERPLEXITY_API_KEY from env:', process.env.PERPLEXITY_API_KEY ? 'Loaded' : 'Not found');
+console.log('PERPLEXITY_MODEL from env:', process.env.PERPLEXITY_MODEL || 'Defaulting to sonar-pro');
+
+// Simple in-memory storage for game sessions
+const gameSessions = new Map();
+
+// WebSocket connection handling
+wss.on('connection', (ws, req) => {
+  console.log('New WebSocket connection established');
+  
+  // Assign a unique ID to each connection
+  const connectionId = generateSessionId();
+  ws.connectionId = connectionId;
+  
+  // Send connection confirmation
+  ws.send(JSON.stringify({
+    type: 'connection-established',
+    connectionId: connectionId
+  }));
+  
+  // Handle incoming messages
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      console.log('WebSocket message received:', data.type);
+      
+      // Broadcast message to all other clients in the same room
+      wss.clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          // For now, broadcast to all clients
+          // In a real implementation, we'd filter by room
+          client.send(message);
+        }
+      });
+      
+      // Handle specific message types
+      switch (data.type) {
+        case 'offer':
+          console.log('Received WebRTC offer');
+          break;
+        case 'answer':
+          console.log('Received WebRTC answer');
+          break;
+        case 'ice-candidate':
+          console.log('Received ICE candidate');
+          break;
+        case 'join-room':
+          console.log('Client joining room:', data.roomId);
+          ws.roomId = data.roomId;
+          break;
+      }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
+    }
+  });
+  
+  // Handle connection close
+  ws.on('close', () => {
+    console.log('WebSocket connection closed:', connectionId);
+  });
+  
+  // Handle errors
+  ws.on('error', (error) => {
+    console.error('WebSocket error for connection', connectionId, ':', error);
+  });
+});
 
 // Middleware to log all requests
 app.use((req, res, next) => {
@@ -40,16 +121,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Log environment variables for debugging (remove in production)
-console.log('PERPLEXITY_API_KEY from env:', process.env.PERPLEXITY_API_KEY ? 'Loaded' : 'Not found');
-console.log('PERPLEXITY_MODEL from env:', process.env.PERPLEXITY_MODEL || 'Defaulting to sonar-pro');
-
-// Simple in-memory storage for game sessions (in production, use a database)
-const gameSessions = new Map();
 
 // Validate API key middleware (optional for local development)
 const validateApiKey = (req, res, next) => {
@@ -531,6 +602,13 @@ app.use((req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`AI Voice Game Backend listening on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+});
+
+// Update to use the HTTP server instead
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`AI Voice Game Backend with WebSocket listening on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`WebSocket server ready`);
 });
 
 module.exports = app;

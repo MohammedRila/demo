@@ -11,12 +11,13 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "helmet": "^7.0.0"
+    "helmet": "^7.0.0",
+    "ws": "^8.13.0"
   },
   "engines": {
     "node": ">=14.0.0"
   },
-  "keywords": ["ai", "voice", "game", "perplexity"],
+  "keywords": ["ai", "voice", "game", "perplexity", "webrtc"],
   "author": "AI Voice Game Developer",
   "license": "MIT"
 }

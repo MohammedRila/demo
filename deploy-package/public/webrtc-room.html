@@ -499,7 +499,7 @@
         let startTime = null;
         let timerInterval = null;
         
-        // ICE configuration
+        // ICE configuration with free STUN servers
         const iceServers = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -562,14 +562,49 @@
 
         function connectToSignalingServer() {
             try {
-                // In a real implementation, this would connect to a WebSocket server
-                // For now, we'll simulate the connection
-                setTimeout(() => {
+                // Connect to WebSocket server
+                const wsUrl = backendUrl.replace('http', 'ws');
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = function(event) {
+                    console.log('WebSocket connection established');
                     document.getElementById('connectionStatus').className = 'connection-status connected';
                     document.getElementById('connectionStatus').innerHTML = '✅ Connected to signaling server';
                     document.getElementById('joinRoomBtn').disabled = false;
-                    console.log('Simulated signaling server connection established');
-                }, 1000);
+                };
+                
+                socket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    console.log('WebSocket message received:', data.type);
+                    
+                    switch (data.type) {
+                        case 'connection-established':
+                            console.log('Connection established with ID:', data.connectionId);
+                            break;
+                        case 'offer':
+                            handleOffer(data.offer);
+                            break;
+                        case 'answer':
+                            handleAnswer(data.answer);
+                            break;
+                        case 'ice-candidate':
+                            handleIceCandidate(data.candidate);
+                            break;
+                    }
+                };
+                
+                socket.onclose = function(event) {
+                    console.log('WebSocket connection closed');
+                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('connectionStatus').innerHTML = '❌ Disconnected from signaling server';
+                };
+                
+                socket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('connectionStatus').innerHTML = '❌ WebSocket connection error';
+                };
+                
             } catch (error) {
                 console.error('Failed to connect to signaling server:', error);
                 document.getElementById('connectionStatus').className = 'connection-status disconnected';
@@ -592,12 +627,7 @@
             }
 
             try {
-                // In a real WebRTC implementation, we would:
-                // 1. Get user media (microphone)
-                // 2. Create peer connection
-                // 3. Connect to signaling server
-                // 4. Exchange ICE candidates and SDP offers/answers
-                
+                // Get user media (microphone)
                 console.log('Getting user media...');
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 console.log('Got local stream:', localStream);
@@ -624,6 +654,17 @@
                 roomId = data.roomId;
                 console.log('Room created with ID:', roomId);
                 
+                // Create peer connection
+                await createPeerConnection();
+                
+                // Notify server that we've joined the room
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'join-room',
+                        roomId: roomId
+                    }));
+                }
+                
                 // Switch to room screen
                 document.getElementById('setupScreen').classList.add('hidden');
                 document.getElementById('roomScreen').classList.remove('hidden');
@@ -642,6 +683,103 @@
             } catch (error) {
                 console.error('Error joining room:', error);
                 alert(`Failed to join room: ${error.message}`);
+            }
+        }
+
+        async function createPeerConnection() {
+            try {
+                // Create RTCPeerConnection
+                peerConnection = new RTCPeerConnection(iceServers);
+                
+                // Add local stream to peer connection
+                if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                }
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = function(event) {
+                    if (event.candidate) {
+                        console.log('Sending ICE candidate');
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
+                                type: 'ice-candidate',
+                                candidate: event.candidate,
+                                roomId: roomId
+                            }));
+                        }
+                    }
+                };
+                
+                // Handle incoming tracks
+                peerConnection.ontrack = function(event) {
+                    console.log('Received remote track');
+                    // In a real implementation, we'd handle the remote stream here
+                };
+                
+                // Create offer for the other peer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                console.log('Sending offer');
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'offer',
+                        offer: offer,
+                        roomId: roomId
+                    }));
+                }
+                
+                console.log('Peer connection created successfully');
+                
+            } catch (error) {
+                console.error('Error creating peer connection:', error);
+                alert(`Failed to create peer connection: ${error.message}`);
+            }
+        }
+
+        function handleOffer(offer) {
+            console.log('Handling offer');
+            if (!peerConnection) {
+                createPeerConnection();
+            }
+            
+            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peerConnection.createAnswer())
+                .then(answer => {
+                    return peerConnection.setLocalDescription(answer);
+                })
+                .then(() => {
+                    console.log('Sending answer');
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'answer',
+                            answer: peerConnection.localDescription,
+                            roomId: roomId
+                        }));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error handling offer:', error);
+                });
+        }
+
+        function handleAnswer(answer) {
+            console.log('Handling answer');
+            peerConnection.setRemoteDescription(new RTCSessionDescription(answer))
+                .catch(error => {
+                    console.error('Error handling answer:', error);
+                });
+        }
+
+        function handleIceCandidate(candidate) {
+            console.log('Handling ICE candidate');
+            if (peerConnection) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+                    .catch(error => {
+                        console.error('Error adding ICE candidate:', error);
+                    });
             }
         }
 
@@ -705,8 +843,8 @@
             // Enable visualization animation
             document.getElementById('audioVisualization').classList.add('recording');
             
-            // In a real implementation, we would send audio stream to peer
-            // For now, we'll simulate speech recognition
+            // In a real implementation, audio is streamed via WebRTC
+            // For demo purposes, we'll simulate speech recognition
             setTimeout(() => {
                 const simulatedTranscript = "This is a simulated voice message from participant.";
                 handleTranscript(simulatedTranscript);
