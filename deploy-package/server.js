@@ -299,6 +299,123 @@ RECOMMENDATIONS:
   }
 });
 
+// Add WebRTC room endpoints
+app.post('/api/webrtc/room', (req, res) => {
+  console.log('=== WEBRTC ROOM CREATION REQUEST ===');
+  console.log('Request received at:', new Date().toISOString());
+  console.log('Request body:', req.body);
+  
+  const { participant1Name, participant2Name } = req.body;
+  
+  console.log('Extracted values:');
+  console.log('- participant1Name:', participant1Name);
+  console.log('- participant2Name:', participant2Name);
+  
+  if (!participant1Name || !participant2Name) {
+    console.log('VALIDATION FAILED: Missing required fields');
+    return res.status(400).json({ 
+      error: 'Missing required fields: participant1Name, participant2Name'
+    });
+  }
+  
+  console.log('Validation passed, creating room');
+  
+  const roomId = generateSessionId(); // Reuse existing function
+  const room = {
+    id: roomId,
+    participant1Name,
+    participant2Name,
+    createdAt: new Date(),
+    conversationHistory: [],
+    bannedParticipants: []
+  };
+  
+  gameSessions.set(roomId, room); // Reuse existing storage
+  
+  console.log('Room created successfully:');
+  console.log('- Room ID:', roomId);
+  
+  res.json({
+    roomId,
+    message: 'WebRTC room created successfully'
+  });
+  
+  console.log('Response sent to client');
+});
+
+app.post('/api/webrtc/:roomId/moderate', async (req, res) => {
+  const { roomId } = req.params;
+  const { speaker, content } = req.body;
+  
+  if (!speaker || !content) {
+    return res.status(400).json({ error: 'Missing required fields: speaker, content' });
+  }
+  
+  const room = gameSessions.get(roomId);
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+  
+  // Add to conversation history
+  const entry = {
+    speaker,
+    content,
+    timestamp: new Date()
+  };
+  
+  room.conversationHistory.push(entry);
+  
+  try {
+    // Create a prompt for the AI moderator
+    const conversationLog = room.conversationHistory.map(h => 
+      `${h.speaker}: ${h.content}`
+    ).join('\n');
+    
+    const prompt = `You are an AI conversation moderator monitoring a real-time voice chat between two participants.
+    
+Current conversation:
+${conversationLog}
+
+Speaker: ${speaker}
+Just said: "${content}"
+
+Your role is to:
+1. Monitor for inappropriate content (profanity, harassment, etc.)
+2. Provide brief, helpful feedback to keep conversation positive
+3. Alert participants to any issues without being disruptive
+4. Keep responses concise and conversational
+
+Respond with a brief, natural-sounding moderation message or encouragement. 
+If everything is fine, you can acknowledge the contribution positively.
+If there's an issue, address it politely but firmly.`;
+
+    // Get AI response
+    const aiResponse = await callPerplexityAI(prompt, room, entry, 512);
+    
+    // Check for explicit content
+    const lowercaseContent = content.toLowerCase();
+    const explicitWords = ['fuck', 'shit', 'damn', 'hell', 'bitch', 'asshole', 'crap'];
+    const hasExplicitContent = explicitWords.some(word => lowercaseContent.includes(word));
+    
+    let finalResponse = aiResponse;
+    if (hasExplicitContent) {
+      finalResponse = `[⚠️ Reminder: Please keep conversation respectful] ${aiResponse}`;
+    }
+    
+    res.json({
+      success: true,
+      aiResponse: finalResponse
+    });
+    
+  } catch (error) {
+    console.error('AI API Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get AI moderation',
+      details: error.message 
+    });
+  }
+});
+
 // Helper function to call Perplexity API
 async function callPerplexityAI(prompt, session, entry = null, maxTokens = 1024) {
   const apiUrl = 'https://api.perplexity.ai/chat/completions';
@@ -402,7 +519,13 @@ app.use((err, req, res, next) => {
 
 // 404 handler - serve frontend for any unmatched routes
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  // If requesting the WebRTC room page specifically
+  if (req.path === '/webrtc-room') {
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
+  } else {
+    // Serve the original game page for other routes
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
