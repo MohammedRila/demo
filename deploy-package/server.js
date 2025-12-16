@@ -599,12 +599,6 @@ app.use((req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`AI Voice Game Backend listening on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-});
-
-// Update to use the HTTP server instead
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`AI Voice Game Backend with WebSocket listening on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
