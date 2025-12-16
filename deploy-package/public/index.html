@@ -189,6 +189,7 @@
             gap: 15px;
             margin-bottom: 30px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .mic-button {
@@ -230,7 +231,7 @@
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 30px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
@@ -249,6 +250,16 @@
             animation: fadeIn 0.3s ease;
         }
 
+        .history-item.ai {
+            background: #e3f2fd;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .history-item.system {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning-color);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -258,6 +269,14 @@
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 5px;
+        }
+
+        .history-player.ai {
+            color: #1976d2;
+        }
+
+        .history-player.system {
+            color: #f57c00;
         }
 
         .history-content {
@@ -842,7 +861,17 @@
                 updateModeIndicator();
                 startTimer();
                 updatePlayerDisplay();
-                document.getElementById('aiResponse').innerHTML = '🎙️ Game started! Player 1, press the microphone button and begin your story...';
+                document.getElementById('aiResponse').innerHTML = '🎙️ Welcome to the storytelling session! Player 1, press the microphone button and begin your story...';
+                
+                // Add welcome message to history
+                const welcomeEntry = {
+                    player: 3, // AI player
+                    playerName: "System",
+                    content: `Storytelling session started with ${player1Name} and ${player2Name}. Theme: ${games[selectedGame].name}.`,
+                    timestamp: new Date()
+                };
+                gameHistory.push(welcomeEntry);
+                updateHistoryDisplay();
                 
                 // Enable controls
                 document.getElementById('micButton').disabled = false;
@@ -1008,7 +1037,7 @@
             
             // Send to backend for AI evaluation
             try {
-                document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> Evaluating...';
+                document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> AI is listening...';
                 
                 const response = await fetch(`${backendUrl}/api/game/${sessionId}/turn`, {
                     method: 'POST',
@@ -1027,7 +1056,20 @@
                 }
                 
                 const data = await response.json();
-                document.getElementById('aiResponse').innerHTML = data.aiResponse;
+                
+                // Add AI response to conversation history
+                if (data.aiResponse) {
+                    const aiEntry = {
+                        player: 3, // AI player
+                        playerName: "AI Moderator",
+                        content: data.aiResponse,
+                        timestamp: new Date()
+                    };
+                    gameHistory.push(aiEntry);
+                    updateHistoryDisplay();
+                }
+                
+                document.getElementById('aiResponse').innerHTML = data.aiResponse || "AI is processing...";
                 
                 // Update player stats from backend
                 if (data.playerStats) {
@@ -1038,6 +1080,16 @@
                 // Check if player is banned
                 if (data.isBanned) {
                     document.getElementById('aiResponse').innerHTML = `🚫 PLAYER ${currentPlayer === 1 ? player1Name : player2Name} HAS BEEN BANNED FROM THE GAME FOR INAPPROPRIATE CONTENT!`;
+                    
+                    // Add ban notification to history
+                    const banEntry = {
+                        player: 3, // AI player
+                        playerName: "System",
+                        content: `Player ${currentPlayer === 1 ? player1Name : player2Name} has been banned for inappropriate content.`,
+                        timestamp: new Date()
+                    };
+                    gameHistory.push(banEntry);
+                    updateHistoryDisplay();
                     
                     // Check if both players are banned
                     if (data.bannedPlayers && data.bannedPlayers.length >= 2) {
@@ -1050,20 +1102,35 @@
                         setTimeout(() => {
                             currentPlayer = currentPlayer === 1 ? 2 : 1;
                             updatePlayerDisplay();
-                            document.getElementById('aiResponse').innerHTML = `${currentPlayer === 1 ? player1Name : player2Name}'s turn. Please continue the story.`;
+                            document.getElementById('aiResponse').innerHTML = `🎙️ ${currentPlayer === 1 ? player1Name : player2Name}, it's your turn! Please continue the story.`;
+                            
+                            // Add turn notification to history
+                            const turnEntry = {
+                                player: 3, // AI player
+                                playerName: "System",
+                                content: `It's now ${currentPlayer === 1 ? player1Name : player2Name}'s turn.`,
+                                timestamp: new Date()
+                            };
+                            gameHistory.push(turnEntry);
+                            updateHistoryDisplay();
                         }, 3000);
                     }
                     return;
                 }
+                
+                // Normal turn transition
+                setTimeout(() => {
+                    currentPlayer = currentPlayer === 1 ? 2 : 1;
+                    updatePlayerDisplay();
+                    document.getElementById('aiResponse').innerHTML = `🎙️ ${currentPlayer === 1 ? player1Name : player2Name}, it's your turn! Please continue the story.`;
+                }, 2000);
                 
             } catch (error) {
                 console.error('Backend API Error:', error);
                 document.getElementById('aiResponse').innerHTML = `❌ Error: ${error.message}. Please check your connection.`;
             }
             
-            // Switch player
-            currentPlayer = currentPlayer === 1 ? 2 : 1;
-            updatePlayerDisplay();
+            // Don't switch player immediately, wait for AI response
         }
 
         function updateHistoryDisplay() {
@@ -1077,9 +1144,23 @@
             let historyHTML = '';
             gameHistory.forEach(entry => {
                 const timeString = entry.timestamp.toLocaleTimeString();
+                let itemClass = '';
+                let playerClass = '';
+                
+                // Apply different styling based on player type
+                if (entry.player === 3) { // AI or System
+                    if (entry.playerName === "AI Moderator") {
+                        itemClass = 'ai';
+                        playerClass = 'ai';
+                    } else {
+                        itemClass = 'system';
+                        playerClass = 'system';
+                    }
+                }
+                
                 historyHTML += `
-                    <div class="history-item">
-                        <div class="history-player">${entry.playerName} (Player ${entry.player})</div>
+                    <div class="history-item ${itemClass}">
+                        <div class="history-player ${playerClass}">${entry.playerName} ${entry.player !== 3 ? `(Player ${entry.player})` : ''}</div>
                         <div class="history-content">${entry.content}</div>
                         <div class="history-timestamp">${timeString}</div>
                     </div>
