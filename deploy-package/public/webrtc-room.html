@@ -76,14 +76,8 @@
             gap: 8px;
         }
 
-        .setup-screen, .room-screen {
+        .screen {
             padding: 30px;
-        }
-
-        .setup-screen {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
         }
 
         .card {
@@ -157,6 +151,111 @@
             width: 100%;
             padding: 15px;
             font-size: 1.1rem;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .room-info {
+            background: var(--light-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .room-info-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .link-display {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 15px 0;
+        }
+
+        .copy-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .connection-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .room-header {
@@ -362,36 +461,6 @@
             background: var(--moderator-bg);
         }
 
-        .hidden {
-            display: none;
-        }
-
-        .connection-status {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .connected {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .connecting {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .disconnected {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
         footer {
             text-align: center;
             padding: 20px;
@@ -413,69 +482,127 @@
 
         <div class="status-bar" id="statusBar"></div>
 
-        <!-- Setup Screen -->
-        <div class="setup-screen" id="setupScreen">
-            <div class="card">
-                <h2 class="card-title">👥 Participant Setup</h2>
-                <div class="input-group">
-                    <label for="participant1Name">Participant 1 Name:</label>
-                    <input type="text" id="participant1Name" placeholder="Enter Participant 1 name">
+        <div class="screen">
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="create">Create Room</button>
+                    <button class="tab-btn" data-tab="join">Join Room</button>
                 </div>
-                <div class="input-group">
-                    <label for="participant2Name">Participant 2 Name:</label>
-                    <input type="text" id="participant2Name" placeholder="Enter Participant 2 name">
+
+                <!-- Create Room Tab -->
+                <div class="tab-content active" id="createTab">
+                    <div class="card">
+                        <h2 class="card-title">🏠 Create New Room</h2>
+                        <div class="input-group">
+                            <label for="hostName">Your Name (Host):</label>
+                            <input type="text" id="hostName" placeholder="Enter your name">
+                        </div>
+                        <div class="input-group">
+                            <label for="guestName">Guest Name:</label>
+                            <input type="text" id="guestName" placeholder="Enter guest name">
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" id="createRoomBtn">
+                            🚀 Create Room & Get Link
+                        </button>
+                    </div>
+
+                    <!-- Room Created Section -->
+                    <div class="card hidden" id="roomCreatedSection">
+                        <h2 class="card-title">✅ Room Created Successfully</h2>
+                        
+                        <div class="room-info">
+                            <div class="room-info-item">
+                                <strong>Host:</strong> <span id="hostDisplayName"></span>
+                            </div>
+                            <div class="room-info-item">
+                                <strong>Guest:</strong> <span id="guestDisplayName"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Share this link with your guest:</label>
+                            <div class="link-display" id="roomLinkDisplay"></div>
+                            <button class="copy-btn" id="copyLinkBtn">📋 Copy Link</button>
+                        </div>
+                        
+                        <button class="btn btn-success btn-block" id="joinAsHostBtn">
+                            🎙️ Join as Host
+                        </button>
+                        
+                        <div class="connection-status connecting" id="hostConnectionStatus">
+                            🔌 Waiting for host to join...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Join Room Tab -->
+                <div class="tab-content" id="joinTab">
+                    <div class="card">
+                        <h2 class="card-title">🚪 Join Existing Room</h2>
+                        
+                        <div class="input-group">
+                            <label for="roomIdInput">Room ID:</label>
+                            <input type="text" id="roomIdInput" placeholder="Enter room ID">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="participantName">Your Name:</label>
+                            <input type="text" id="participantName" placeholder="Enter your name">
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" id="joinRoomBtn">
+                            🎙️ Join Room
+                        </button>
+                        
+                        <div class="connection-status connecting" id="joinConnectionStatus">
+                            🔌 Waiting to join room...
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="connection-status connecting" id="connectionStatus">
-                🔌 Connecting to signaling server...
-            </div>
-
-            <button class="btn btn-primary btn-block" id="joinRoomBtn" disabled>
-                🚀 Join Voice Room
-            </button>
-        </div>
-
-        <!-- Room Screen -->
-        <div class="room-screen hidden" id="roomScreen">
-            <div class="room-header">
-                <div class="timer-display" id="timer">⏱️ 00:00</div>
-                <div class="participant-display" id="currentSpeaker">🎙️ Waiting for participants...</div>
-            </div>
-
-            <div class="audio-visualization" id="audioVisualization">
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-            </div>
-
-            <div class="controls">
-                <button class="mic-button" id="micButton" disabled>
-                    🎤
-                </button>
-                <button class="btn" id="leaveRoomBtn">
-                    🚪 Leave Room
-                </button>
-            </div>
-
-            <div class="conversation-container">
-                <h3 class="conversation-title">💬 Conversation History</h3>
-                <div id="conversation">
-                    <p style="text-align: center; color: #999;">No messages yet...</p>
+            <!-- Room Screen (Hidden by default) -->
+            <div class="room-screen hidden" id="roomScreen">
+                <div class="room-header">
+                    <div class="timer-display" id="timer">⏱️ 00:00</div>
+                    <div class="participant-display" id="currentSpeaker">🎙️ Waiting for participants...</div>
                 </div>
-            </div>
 
-            <div class="ai-response">
-                <h3 class="ai-title">🤖 AI Moderator</h3>
-                <div class="ai-content" id="aiResponse">
-                    Room not joined yet. Connect to start!
+                <div class="audio-visualization" id="audioVisualization">
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="mic-button" id="micButton" disabled>
+                        🎤
+                    </button>
+                    <button class="btn" id="leaveRoomBtn">
+                        🚪 Leave Room
+                    </button>
+                </div>
+
+                <div class="conversation-container">
+                    <h3 class="conversation-title">💬 Conversation History</h3>
+                    <div id="conversation">
+                        <p style="text-align: center; color: #999;">No messages yet...</p>
+                    </div>
+                </div>
+
+                <div class="ai-response">
+                    <h3 class="ai-title">🤖 AI Moderator</h3>
+                    <div class="ai-content" id="aiResponse">
+                        Room not joined yet. Connect to start!
+                    </div>
                 </div>
             </div>
         </div>
@@ -491,6 +618,7 @@
         let participant1Name = '';
         let participant2Name = '';
         let roomId = null;
+        let roomLink = null;
         let localStream = null;
         let remoteStream = null;
         let peerConnection = null;
@@ -523,39 +651,52 @@
 
         function setupEventListeners() {
             console.log('Setting up event listeners');
-            const joinBtn = document.getElementById('joinRoomBtn');
-            const micBtn = document.getElementById('micButton');
-            const leaveBtn = document.getElementById('leaveRoomBtn');
             
-            console.log('Elements found:', {
-                joinBtn: !!joinBtn,
-                micBtn: !!micBtn,
-                leaveBtn: !!leaveBtn
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons and tabs
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Show corresponding tab content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`${tabId}Tab`).classList.add('active');
+                });
             });
             
-            if (joinBtn) {
-                joinBtn.addEventListener('click', function(e) {
-                    console.log('JOIN ROOM BUTTON CLICKED');
-                    joinRoom();
-                });
-                console.log('Join room button event listener added');
-            }
+            // Create room button
+            document.getElementById('createRoomBtn').addEventListener('click', createRoom);
             
-            if (micBtn) {
-                micBtn.addEventListener('click', function(e) {
-                    console.log('MIC BUTTON CLICKED');
-                    toggleRecording();
-                });
-                console.log('Mic button event listener added');
-            }
+            // Copy link button
+            document.getElementById('copyLinkBtn').addEventListener('click', copyRoomLink);
             
-            if (leaveBtn) {
-                leaveBtn.addEventListener('click', function(e) {
-                    console.log('LEAVE ROOM BUTTON CLICKED');
-                    leaveRoom();
-                });
-                console.log('Leave room button event listener added');
-            }
+            // Join as host button
+            document.getElementById('joinAsHostBtn').addEventListener('click', function() {
+                joinRoom('host', participant1Name);
+            });
+            
+            // Join room button
+            document.getElementById('joinRoomBtn').addEventListener('click', function() {
+                const roomId = document.getElementById('roomIdInput').value.trim();
+                const participantName = document.getElementById('participantName').value.trim();
+                
+                if (!roomId || !participantName) {
+                    alert('Please enter both room ID and your name');
+                    return;
+                }
+                
+                joinExistingRoom(roomId, participantName);
+            });
+            
+            // Mic button
+            document.getElementById('micButton').addEventListener('click', toggleRecording);
+            
+            // Leave room button
+            document.getElementById('leaveRoomBtn').addEventListener('click', leaveRoom);
             
             console.log('All event listeners set up');
         }
@@ -568,9 +709,10 @@
                 
                 socket.onopen = function(event) {
                     console.log('WebSocket connection established');
-                    document.getElementById('connectionStatus').className = 'connection-status connected';
-                    document.getElementById('connectionStatus').innerHTML = '✅ Connected to signaling server';
-                    document.getElementById('joinRoomBtn').disabled = false;
+                    document.getElementById('hostConnectionStatus').className = 'connection-status connected';
+                    document.getElementById('hostConnectionStatus').innerHTML = '✅ Connected to signaling server';
+                    document.getElementById('joinConnectionStatus').className = 'connection-status connected';
+                    document.getElementById('joinConnectionStatus').innerHTML = '✅ Connected to signaling server';
                 };
                 
                 socket.onmessage = function(event) {
@@ -595,63 +737,54 @@
                 
                 socket.onclose = function(event) {
                     console.log('WebSocket connection closed');
-                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
-                    document.getElementById('connectionStatus').innerHTML = '❌ Disconnected from signaling server';
+                    document.getElementById('hostConnectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('hostConnectionStatus').innerHTML = '❌ Disconnected from signaling server';
+                    document.getElementById('joinConnectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('joinConnectionStatus').innerHTML = '❌ Disconnected from signaling server';
                 };
                 
                 socket.onerror = function(error) {
                     console.error('WebSocket error:', error);
-                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
-                    document.getElementById('connectionStatus').innerHTML = '❌ WebSocket connection error';
+                    document.getElementById('hostConnectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('hostConnectionStatus').innerHTML = '❌ WebSocket connection error';
+                    document.getElementById('joinConnectionStatus').className = 'connection-status disconnected';
+                    document.getElementById('joinConnectionStatus').innerHTML = '❌ WebSocket connection error';
                 };
                 
             } catch (error) {
                 console.error('Failed to connect to signaling server:', error);
-                document.getElementById('connectionStatus').className = 'connection-status disconnected';
-                document.getElementById('connectionStatus').innerHTML = '❌ Failed to connect to signaling server';
+                document.getElementById('hostConnectionStatus').className = 'connection-status disconnected';
+                document.getElementById('hostConnectionStatus').innerHTML = '❌ Failed to connect to signaling server';
+                document.getElementById('joinConnectionStatus').className = 'connection-status disconnected';
+                document.getElementById('joinConnectionStatus').innerHTML = '❌ Failed to connect to signaling server';
             }
         }
 
-        async function joinRoom() {
-            console.log('=== JOIN ROOM FUNCTION CALLED ===');
+        async function createRoom() {
+            console.log('=== CREATE ROOM FUNCTION CALLED ===');
             
-            participant1Name = document.getElementById('participant1Name').value.trim();
-            participant2Name = document.getElementById('participant2Name').value.trim();
+            const hostName = document.getElementById('hostName').value.trim();
+            const guestName = document.getElementById('guestName').value.trim();
 
-            console.log('Participant names:', participant1Name, participant2Name);
+            console.log('Participant names:', hostName, guestName);
 
-            if (!participant1Name || !participant2Name) {
+            if (!hostName || !guestName) {
                 console.log('ERROR: Missing participant names');
                 alert('Please enter names for both participants.');
                 return;
             }
 
-            // Handle same usernames
-            let displayName1 = participant1Name;
-            let displayName2 = participant2Name;
-            
-            if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
-                displayName1 = `${participant1Name} (Participant 1)`;
-                displayName2 = `${participant2Name} (Participant 2)`;
-                console.log('Same names detected, using display names:', displayName1, displayName2);
-            }
-
             try {
-                // Get user media (microphone)
-                console.log('Getting user media...');
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                console.log('Got local stream:', localStream);
-                
                 // Create room on backend
                 console.log('Creating room on backend...');
-                const response = await fetch(`${backendUrl}/api/webrtc/room`, {
+                const response = await fetch(`${backendUrl}/api/webrtc/room/create-link`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        participant1Name,
-                        participant2Name
+                        participant1Name: hostName,
+                        participant2Name: guestName
                     })
                 });
 
@@ -662,47 +795,160 @@
 
                 const data = await response.json();
                 roomId = data.roomId;
+                roomLink = data.roomLink;
                 
-                // Use display names from server response if provided
-                if (data.participantLabels) {
-                    displayName1 = data.participantLabels.participant1;
-                    displayName2 = data.participantLabels.participant2;
+                // Display room info
+                document.getElementById('hostDisplayName').textContent = hostName;
+                document.getElementById('guestDisplayName').textContent = guestName;
+                document.getElementById('roomLinkDisplay').textContent = roomLink;
+                
+                // Show room created section
+                document.getElementById('roomCreatedSection').classList.remove('hidden');
+                
+                console.log('Room created successfully:', roomId);
+                
+            } catch (error) {
+                console.error('Error creating room:', error);
+                alert(`Failed to create room: ${error.message}`);
+            }
+        }
+
+        function copyRoomLink() {
+            navigator.clipboard.writeText(roomLink).then(() => {
+                const copyBtn = document.getElementById('copyLinkBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy link:', err);
+                alert('Failed to copy link. Please copy it manually.');
+            });
+        }
+
+        async function joinExistingRoom(roomId, participantName) {
+            try {
+                // Update connection status
+                const statusElement = document.getElementById('joinConnectionStatus');
+                statusElement.className = 'connection-status connecting';
+                statusElement.innerHTML = '🔌 Connecting to room...';
+                
+                // Get room info
+                const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Room not found. The room ID may be incorrect or the room may have expired.');
+                    }
+                    throw new Error(`Failed to get room info: ${response.status}`);
                 }
                 
-                console.log('Room created with ID:', roomId);
+                const roomData = await response.json();
                 
-                // Store display names for UI
-                window.displayName1 = displayName1;
-                window.displayName2 = displayName2;
+                // Join the room
+                const joinResponse = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        participantRole: 'guest',
+                        participantName: participantName
+                    })
+                });
                 
-                // Create peer connection
-                await createPeerConnection();
-                
-                // Notify server that we've joined the room
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                        type: 'join-room',
-                        roomId: roomId
-                    }));
+                if (!joinResponse.ok) {
+                    const errorText = await joinResponse.text();
+                    throw new Error(`Failed to join room: ${joinResponse.status} - ${errorText}`);
                 }
+                
+                const joinData = await joinResponse.json();
+                
+                statusElement.className = 'connection-status connected';
+                statusElement.innerHTML = '✅ Connected to room!';
                 
                 // Switch to room screen
-                document.getElementById('setupScreen').classList.add('hidden');
+                document.querySelector('.screen').classList.add('hidden');
                 document.getElementById('roomScreen').classList.remove('hidden');
                 
                 // Update UI
                 updateModeIndicator('audio');
                 startTimer();
                 document.getElementById('micButton').disabled = false;
-                document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${displayName1}.`;
+                document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${participantName}.`;
                 
                 // Add welcome message to conversation
-                addMessageToConversation('System', `Room joined successfully. You are ${displayName1}.`, 'system');
+                addMessageToConversation('System', `Room joined successfully. You are ${participantName}.`, 'system');
                 
-                console.log('Room joined successfully!');
+                console.log('Room joined successfully');
                 
             } catch (error) {
                 console.error('Error joining room:', error);
+                
+                const statusElement = document.getElementById('joinConnectionStatus');
+                statusElement.className = 'connection-status disconnected';
+                statusElement.innerHTML = `❌ Failed to connect: ${error.message}`;
+                
+                alert(`Failed to join room: ${error.message}`);
+            }
+        }
+
+        async function joinRoom(role, name) {
+            if (!roomId) {
+                alert('Room ID not found');
+                return;
+            }
+            
+            try {
+                // Update connection status
+                const statusElement = document.getElementById('hostConnectionStatus');
+                statusElement.className = 'connection-status connecting';
+                statusElement.innerHTML = '🔌 Connecting to room...';
+                
+                const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        participantRole: role,
+                        participantName: name
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to join room: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                statusElement.className = 'connection-status connected';
+                statusElement.innerHTML = '✅ Connected to room!';
+                
+                // Switch to room screen
+                document.querySelector('.screen').classList.add('hidden');
+                document.getElementById('roomScreen').classList.remove('hidden');
+                
+                // Update UI
+                updateModeIndicator('audio');
+                startTimer();
+                document.getElementById('micButton').disabled = false;
+                document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${name}.`;
+                
+                // Add welcome message to conversation
+                addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
+                
+                console.log(`${role} joined room successfully`);
+                
+            } catch (error) {
+                console.error('Error joining room:', error);
+                
+                const statusElement = document.getElementById('hostConnectionStatus');
+                statusElement.className = 'connection-status disconnected';
+                statusElement.innerHTML = `❌ Failed to connect: ${error.message}`;
+                
                 alert(`Failed to join room: ${error.message}`);
             }
         }
@@ -712,7 +958,7 @@
                 // Create RTCPeerConnection
                 peerConnection = new RTCPeerConnection(iceServers);
                 
-                // Add local stream to peer connection
+                // Add local stream to peer connection (if already available)
                 if (localStream) {
                     localStream.getTracks().forEach(track => {
                         peerConnection.addTrack(track, localStream);
@@ -737,21 +983,22 @@
                 peerConnection.ontrack = function(event) {
                     console.log('Received remote track');
                     // In a real implementation, we'd handle the remote stream here
+                    // For example, we could attach it to an audio element to play the remote audio
                 };
                 
-                // Create offer for the other peer
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = function() {
+                    console.log('Connection state changed:', peerConnection.connectionState);
+                    if (peerConnection.connectionState === 'connected') {
+                        console.log('WebRTC connection established successfully');
+                    } else if (peerConnection.connectionState === 'failed') {
+                        console.error('WebRTC connection failed');
+                        alert('WebRTC connection failed. Please check your network connection.');
+                    }
+                };
                 
-                console.log('Sending offer');
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                        type: 'offer',
-                        offer: offer,
-                        roomId: roomId
-                    }));
-                }
-                
+                // Create offer for the other peer (only if we're initiating the connection)
+                // In a real implementation, this would be done when the second participant joins
                 console.log('Peer connection created successfully');
                 
             } catch (error) {
@@ -855,7 +1102,7 @@
             }
         }
 
-        function startRecording() {
+        async function startRecording() {
             isRecording = true;
             const micButton = document.getElementById('micButton');
             micButton.textContent = '⏹️';
@@ -864,14 +1111,37 @@
             // Enable visualization animation
             document.getElementById('audioVisualization').classList.add('recording');
             
-            // In a real implementation, audio is streamed via WebRTC
-            // For demo purposes, we'll simulate speech recognition
-            setTimeout(() => {
-                // Use the participant's display name
-                const senderName = window.displayName1 || participant1Name;
-                const simulatedTranscript = `This is a simulated voice message from ${senderName}.`;
-                handleTranscript(simulatedTranscript, senderName);
-            }, 2000);
+            try {
+                // Get user media (microphone)
+                if (!localStream) {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    console.log('Got local stream:', localStream);
+                    
+                    // Create peer connection if not already created
+                    if (!peerConnection) {
+                        await createPeerConnection();
+                    }
+                    
+                    // Add local stream to peer connection
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                }
+                
+                // In a real WebRTC implementation, audio is streamed via the peer connection
+                // For now, we'll still simulate the transcript for AI moderation
+                setTimeout(() => {
+                    const senderName = participant1Name; // In real implementation, we'd know who's speaking
+                    const simulatedTranscript = `This is a simulated voice message from ${senderName}.`;
+                    handleTranscript(simulatedTranscript, senderName);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                alert('Failed to access microphone. Please check your permissions.');
+                stopRecording();
+                return;
+            }
             
             document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> Listening...';
             console.log('Recording started');
@@ -991,7 +1261,7 @@
             
             // Reset UI
             document.getElementById('roomScreen').classList.add('hidden');
-            document.getElementById('setupScreen').classList.remove('hidden');
+            document.querySelector('.screen').classList.remove('hidden');
             document.getElementById('conversation').innerHTML = '<p style="text-align: center; color: #999;">No messages yet...</p>';
             document.getElementById('aiResponse').innerHTML = 'Room not joined yet. Connect to start!';
             

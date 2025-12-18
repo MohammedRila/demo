@@ -71,30 +71,58 @@ wss.on('connection', (ws, req) => {
       const data = JSON.parse(message);
       console.log('WebSocket message received:', data.type);
       
-      // Broadcast message to all other clients in the same room
-      wss.clients.forEach((client) => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          // For now, broadcast to all clients
-          // In a real implementation, we'd filter by room
-          client.send(message);
-        }
-      });
-      
       // Handle specific message types
       switch (data.type) {
         case 'offer':
           console.log('Received WebRTC offer');
+          // Broadcast offer to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'offer',
+                offer: data.offer,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'answer':
           console.log('Received WebRTC answer');
+          // Broadcast answer to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'answer',
+                answer: data.answer,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'ice-candidate':
           console.log('Received ICE candidate');
+          // Broadcast ICE candidate to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'ice-candidate',
+                candidate: data.candidate,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'join-room':
           console.log('Client joining room:', data.roomId);
           ws.roomId = data.roomId;
           break;
+        default:
+          // For other message types, broadcast to all other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(message);
+            }
+          });
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
@@ -135,244 +163,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Create a new game session
-app.post('/api/game/session', (req, res) => {
-  console.log('=== GAME SESSION CREATION REQUEST ===');
-  console.log('Request received at:', new Date().toISOString());
-  console.log('Request body:', req.body);
-  
-  const { player1Name, player2Name, gameType } = req.body;
-  
-  console.log('Extracted values:');
-  console.log('- player1Name:', player1Name);
-  console.log('- player2Name:', player2Name);
-  console.log('- gameType:', gameType);
-  
-  if (!player1Name || !player2Name || !gameType) {
-    console.log('VALIDATION FAILED: Missing required fields');
-    console.log('Missing fields check:');
-    console.log('- player1Name exists:', !!player1Name);
-    console.log('- player2Name exists:', !!player2Name);
-    console.log('- gameType exists:', !!gameType);
-    
-    return res.status(400).json({ 
-      error: 'Missing required fields', 
-      details: {
-        player1Name: !!player1Name,
-        player2Name: !!player2Name,
-        gameType: !!gameType
-      }
-    });
-  }
-  
-  console.log('Validation passed, creating session');
-  
-  const sessionId = generateSessionId();
-  const session = {
-    id: sessionId,
-    player1Name,
-    player2Name,
-    gameType,
-    createdAt: new Date(),
-    gameHistory: [],
-    playerStats: {
-      1: { turns: 0, words: 0, violations: 0 },
-      2: { turns: 0, words: 0, violations: 0 }
-    },
-    bannedPlayers: []
-  };
-  
-  gameSessions.set(sessionId, session);
-  
-  console.log('Session created successfully:');
-  console.log('- Session ID:', sessionId);
-  console.log('- Session data:', JSON.stringify(session, null, 2));
-  
-  res.json({
-    sessionId,
-    message: 'Game session created successfully'
-  });
-  
-  console.log('Response sent to client');
-});
+// ==================== WEBRTC ROOM ENDPOINTS ====================
 
-// Submit a player turn
-app.post('/api/game/:sessionId/turn', async (req, res) => {
-  const { sessionId } = req.params;
-  const { player, content } = req.body;
-  
-  if (!player || !content) {
-    return res.status(400).json({ error: 'Missing required fields: player, content' });
-  }
-  
-  const session = gameSessions.get(sessionId);
-  if (!session) {
-    return res.status(404).json({ error: 'Game session not found' });
-  }
-  
-  // Check if player is banned
-  if (session.bannedPlayers.includes(player)) {
-    return res.status(403).json({ error: `Player ${player} is banned from this game` });
-  }
-  
-  // Add to game history
-  const entry = {
-    player,
-    playerName: player === 1 ? session.player1Name : session.player2Name,
-    content,
-    timestamp: new Date()
-  };
-  
-  session.gameHistory.push(entry);
-  
-  // Update player stats
-  const wordCount = content.split(' ').length;
-  session.playerStats[player].turns++;
-  session.playerStats[player].words += wordCount;
-  
-  try {
-    // Get AI evaluation
-    const aiResponse = await callPerplexityAI(content, session, entry);
-    
-    // Check for explicit violations in the content itself (not in AI response)
-    const lowercaseContent = content.toLowerCase();
-    const explicitWords = ['fuck', 'shit', 'damn', 'hell', 'bitch', 'asshole', 'crap'];
-    const hasExplicitContent = explicitWords.some(word => lowercaseContent.includes(word));
-    
-    // If explicit content found, prepend a clear warning
-    let finalResponse = aiResponse;
-    if (hasExplicitContent) {
-      const violationCount = session.playerStats[player].violations + 1;
-      const warningMessage = `[⚠️ WARNING: Inappropriate language detected - Violation ${violationCount} of 3]\n\n`;
-      finalResponse = warningMessage + aiResponse;
-      
-      // Increment violation counter
-      session.playerStats[player].violations++;
-      
-      // Ban after 3 violations
-      if (session.playerStats[player].violations >= 3) {
-        session.bannedPlayers.push(player);
-      }
-    }
-    
-    res.json({
-      success: true,
-      aiResponse: finalResponse,
-      playerStats: session.playerStats,
-      bannedPlayers: session.bannedPlayers,
-      isBanned: session.bannedPlayers.includes(player)
-    });
-    
-  } catch (error) {
-    console.error('AI API Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to get AI response',
-      details: error.message 
-    });
-  }
-});
-
-// Get session status
-app.get('/api/game/:sessionId/status', (req, res) => {
-  const { sessionId } = req.params;
-  
-  const session = gameSessions.get(sessionId);
-  if (!session) {
-    return res.status(404).json({ error: 'Game session not found' });
-  }
-  
-  res.json({
-    sessionId: session.id,
-    player1Name: session.player1Name,
-    player2Name: session.player2Name,
-    gameType: session.gameType,
-    createdAt: session.createdAt,
-    playerStats: session.playerStats,
-    bannedPlayers: session.bannedPlayers,
-    turnCount: session.gameHistory.length,
-    gameHistory: session.gameHistory.slice(-10) // Last 10 entries
-  });
-});
-
-// Moderator mode - analyze entire conversation
-app.post('/api/game/:sessionId/moderate', async (req, res) => {
-  const { sessionId } = req.params;
-  
-  const session = gameSessions.get(sessionId);
-  if (!session) {
-    return res.status(404).json({ error: 'Game session not found' });
-  }
-  
-  try {
-    // Build conversation log with explicit content checking
-    let flaggedInstances = [];
-    const conversationLog = session.gameHistory.map((h, index) => {
-      // Check each entry for explicit content
-      const lowercaseContent = h.content.toLowerCase();
-      const explicitWords = ['fuck', 'shit', 'damn', 'hell', 'bitch', 'asshole', 'crap'];
-      const hasExplicitContent = explicitWords.some(word => lowercaseContent.includes(word));
-      
-      if (hasExplicitContent) {
-        flaggedInstances.push({
-          player: h.player,
-          playerName: h.playerName,
-          content: h.content,
-          timestamp: h.timestamp
-        });
-      }
-      
-      return `${h.playerName} (Player ${h.player}): ${h.content}`;
-    }).join('\n');
-    
-    const prompt = `You are an advanced behavioral analyst and conversation moderator for a collaborative storytelling game.
-    
-Review this conversation for inappropriate content and collaboration quality:
-
-${conversationLog}
-
-Provide a structured analysis:
-
-OVERALL COLLABORATION RATING: [Excellent/Good/Fair/Poor]
-
-VIOLATIONS DETECTED:
-${flaggedInstances.length > 0 ? 
-  flaggedInstances.map((instance, i) => 
-    `${i+1}. Player ${instance.playerName}: "${instance.content}" - Explicit language violation`
-  ).join('\n') : 
-  'None found'}
-
-BEHAVIORAL ANALYSIS:
-- Individual player engagement and creativity
-- Respectful communication patterns
-- Narrative building collaboration
-- Any concerning behavioral patterns
-
-RECOMMENDATIONS:
-- Specific suggestions for improved collaboration
-- Guidance on appropriate content and language
-- Tips for better creative storytelling`;
-
-    const aiResponse = await callPerplexityAI(prompt, session, null, 2048);
-    
-    res.json({
-      success: true,
-      aiResponse,
-      playerStats: session.playerStats,
-      bannedPlayers: session.bannedPlayers
-    });
-    
-  } catch (error) {
-    console.error('AI API Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to get AI moderation report',
-      details: error.message 
-    });
-  }
-});
-
-// Add WebRTC room endpoints
+// Create a new WebRTC room
 app.post('/api/webrtc/room', (req, res) => {
-  console.log('=== WEBRTC ROOM CREATION REQUEST ===');
+  console.log('=== CREATE ROOM REQUEST ===');
   console.log('Request received at:', new Date().toISOString());
   console.log('Request body:', req.body);
   
@@ -389,25 +184,31 @@ app.post('/api/webrtc/room', (req, res) => {
     });
   }
   
-  // Check if both participants have the same name
+  // Handle same usernames
+  let displayName1 = participant1Name;
+  let displayName2 = participant2Name;
+  
   if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
-    console.log('WARNING: Both participants have the same name, appending identifiers');
-    // We'll handle this on the client side by adding Participant 1/2 labels
+    displayName1 = `${participant1Name} (Host)`;
+    displayName2 = `${participant2Name} (Guest)`;
+    console.log('Same names detected, using display names:', displayName1, displayName2);
   }
   
   console.log('Validation passed, creating room');
   
-  const roomId = generateSessionId(); // Reuse existing function
+  const roomId = generateSessionId();
   const room = {
     id: roomId,
-    participant1Name,
-    participant2Name,
+    participant1Name: displayName1,
+    participant2Name: displayName2,
     createdAt: new Date(),
     conversationHistory: [],
-    bannedParticipants: []
+    bannedParticipants: [],
+    hostJoined: false,
+    guestJoined: false
   };
   
-  gameSessions.set(roomId, room); // Reuse existing storage
+  gameSessions.set(roomId, room);
   
   console.log('Room created successfully:');
   console.log('- Room ID:', roomId);
@@ -416,8 +217,8 @@ app.post('/api/webrtc/room', (req, res) => {
     roomId,
     message: 'WebRTC room created successfully',
     participantLabels: {
-      participant1: `${participant1Name} (Participant 1)`,
-      participant2: `${participant2Name} (Participant 2)`
+      host: `${displayName1} (Host)`,
+      guest: `${displayName2} (Guest)`
     }
   });
   
@@ -707,8 +508,10 @@ app.use((err, req, res, next) => {
 
 // 404 handler - serve frontend for any unmatched routes
 app.use((req, res) => {
-  // If requesting the WebRTC room page specifically
-  if (req.path === '/webrtc-room') {
+  // Serve the WebRTC room as the main application
+  if (req.path === '/' || req.path === '/index.html') {
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
+  } else if (req.path === '/webrtc-room') {
     res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
   } else if (req.path === '/webrtc-room-link') {
     // Serve the room link page
@@ -717,8 +520,8 @@ app.use((req, res) => {
     // Serve the room link page for room links
     res.sendFile(path.join(__dirname, 'public', 'webrtc-room-link.html'));
   } else {
-    // Serve the original game page for other routes
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Serve the WebRTC room for other routes as default
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
   }
 });
 
