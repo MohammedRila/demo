@@ -707,8 +707,10 @@ app.use((err, req, res, next) => {
 
 // 404 handler - serve frontend for any unmatched routes
 app.use((req, res) => {
-  // If requesting the WebRTC room page specifically
-  if (req.path === '/webrtc-room') {
+  // Serve the WebRTC room as the main application
+  if (req.path === '/' || req.path === '/index.html') {
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
+  } else if (req.path === '/webrtc-room') {
     res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
   } else if (req.path === '/webrtc-room-link') {
     // Serve the room link page
@@ -717,8 +719,8 @@ app.use((req, res) => {
     // Serve the room link page for room links
     res.sendFile(path.join(__dirname, 'public', 'webrtc-room-link.html'));
   } else {
-    // Serve the original game page for other routes
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Serve the WebRTC room for other routes as default
+    res.sendFile(path.join(__dirname, 'public', 'webrtc-room.html'));
   }
 });
 
