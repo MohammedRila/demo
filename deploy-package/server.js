@@ -71,30 +71,58 @@ wss.on('connection', (ws, req) => {
       const data = JSON.parse(message);
       console.log('WebSocket message received:', data.type);
       
-      // Broadcast message to all other clients in the same room
-      wss.clients.forEach((client) => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          // For now, broadcast to all clients
-          // In a real implementation, we'd filter by room
-          client.send(message);
-        }
-      });
-      
       // Handle specific message types
       switch (data.type) {
         case 'offer':
           console.log('Received WebRTC offer');
+          // Broadcast offer to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'offer',
+                offer: data.offer,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'answer':
           console.log('Received WebRTC answer');
+          // Broadcast answer to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'answer',
+                answer: data.answer,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'ice-candidate':
           console.log('Received ICE candidate');
+          // Broadcast ICE candidate to other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'ice-candidate',
+                candidate: data.candidate,
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         case 'join-room':
           console.log('Client joining room:', data.roomId);
           ws.roomId = data.roomId;
           break;
+        default:
+          // For other message types, broadcast to all other clients in the same room
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(message);
+            }
+          });
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
