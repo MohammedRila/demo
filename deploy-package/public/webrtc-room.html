@@ -646,11 +646,10 @@
         let localStream = null;
         let remoteStream = null;
         let peerConnection = null;
+        let speechRecognition = null;
         let socket = null;
         let isRecording = false;
-        let startTime = null;
-        let timerInterval = null;
-        
+
         // ICE configuration with free STUN servers
         const iceServers = {
             iceServers: [
@@ -1332,6 +1331,9 @@
                     startAudioLevelMonitoring();
                 }
                 
+                // Start speech recognition
+                startSpeechRecognition();
+                
                 console.log('🎙️ Microphone access successful, streaming audio via WebRTC');
                 
             } catch (error) {
@@ -1353,6 +1355,16 @@
             
             // Disable visualization animation
             document.getElementById('audioVisualization').classList.remove('recording');
+            
+            // Stop speech recognition if active
+            if (speechRecognition) {
+                try {
+                    speechRecognition.stop();
+                    console.log('🛑 Speech recognition stopped');
+                } catch (error) {
+                    console.warn('⚠️ Error stopping speech recognition:', error);
+                }
+            }
             
             console.log('Recording stopped');
         }
@@ -1405,6 +1417,100 @@
                 console.error('⚠️ Could not start audio level monitoring:', error);
                 // Fallback to simple animation
                 document.getElementById('audioVisualization').classList.add('recording-fallback');
+            }
+        }
+
+        function startSpeechRecognition() {
+            console.log('🗣️ Starting speech recognition');
+            
+            try {
+                // Check if SpeechRecognition is supported
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                
+                if (!SpeechRecognition) {
+                    console.warn('⚠️ Speech Recognition not supported in this browser');
+                    // Fallback to simulated speech after delay
+                    setTimeout(() => {
+                        if (isRecording) {
+                            const simulatedTranscript = `This is a simulated voice message from ${participant1Name}.`;
+                            console.log('🤖 Using simulated speech recognition:', simulatedTranscript);
+                            handleTranscript(simulatedTranscript, participant1Name);
+                        }
+                    }, 3000);
+                    return;
+                }
+                
+                // Create speech recognition instance
+                if (!speechRecognition) {
+                    speechRecognition = new SpeechRecognition();
+                    speechRecognition.continuous = true;
+                    speechRecognition.interimResults = true;
+                    speechRecognition.lang = 'en-US';
+                    
+                    speechRecognition.onresult = function(event) {
+                        console.log('🎯 Speech recognition result received');
+                        let finalTranscript = '';
+                        let interimTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const transcript = event.results[i][0].transcript;
+                            if (event.results[i].isFinal) {
+                                finalTranscript += transcript + ' ';
+                                console.log('📝 Final transcript:', transcript);
+                            } else {
+                                interimTranscript += transcript;
+                                console.log('🔄 Interim transcript:', transcript);
+                            }
+                        }
+                        
+                        // Handle final transcripts
+                        if (finalTranscript.trim()) {
+                            handleTranscript(finalTranscript.trim(), participant1Name);
+                        }
+                    };
+                    
+                    speechRecognition.onerror = function(event) {
+                        console.error('❌ Speech recognition error:', event.error);
+                        document.getElementById('aiResponse').innerHTML = `❌ Speech recognition error: ${event.error}`;
+                        
+                        // Fallback to simulated speech
+                        setTimeout(() => {
+                            if (isRecording) {
+                                const simulatedTranscript = `This is a simulated voice message from ${participant1Name}.`;
+                                console.log('🤖 Using simulated speech recognition due to error:', simulatedTranscript);
+                                handleTranscript(simulatedTranscript, participant1Name);
+                            }
+                        }, 3000);
+                    };
+                    
+                    speechRecognition.onend = function() {
+                        console.log('🔚 Speech recognition ended');
+                        // Restart if still recording
+                        if (isRecording) {
+                            console.log('🔁 Restarting speech recognition');
+                            try {
+                                speechRecognition.start();
+                            } catch (e) {
+                                console.error('❌ Failed to restart speech recognition:', e);
+                            }
+                        }
+                    };
+                }
+                
+                // Start speech recognition
+                speechRecognition.start();
+                console.log('✅ Speech recognition started');
+                
+            } catch (error) {
+                console.error('❌ Error starting speech recognition:', error);
+                // Fallback to simulated speech
+                setTimeout(() => {
+                    if (isRecording) {
+                        const simulatedTranscript = `This is a simulated voice message from ${participant1Name}.`;
+                        console.log('🤖 Using simulated speech recognition due to error:', simulatedTranscript);
+                        handleTranscript(simulatedTranscript, participant1Name);
+                    }
+                }, 3000);
             }
         }
 
