@@ -539,6 +539,29 @@
             opacity: 0.9;
         }
 
+        .participant-info {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(67, 97, 238, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .host-info, .guest-info {
+            flex: 1;
+            text-align: center;
+        }
+
+        .host-info {
+            color: var(--primary-color);
+        }
+
+        .guest-info {
+            color: var(--success-color);
+        }
+
     </style>
 </head>
 <body>
@@ -609,6 +632,12 @@
             <div class="room-header">
                 <div class="timer-display" id="timer">⏱️ 00:00</div>
                 <div class="participant-display" id="currentSpeaker">🎙️ Room joined. Waiting for connection...</div>
+            </div>
+            
+            <!-- Participant Info Display -->
+            <div class="participant-info" id="participantInfo">
+                <div class="host-info">👤 Host: <span id="hostNameDisplay">-</span></div>
+                <div class="guest-info">👤 Guest: <span id="guestNameDisplay">-</span></div>
             </div>
 
             <div class="audio-visualization" id="audioVisualization">
@@ -843,6 +872,9 @@
                                 }
                             }
                             
+                            // Update participant info
+                            updateParticipantInfo();
+                            
                             // If we're the host, create and send offer
                             // Check if we're in a room and have a peer connection
                             if (roomId && peerConnection && participant1Name) {
@@ -1045,6 +1077,9 @@
                     currentSpeaker.innerHTML = `🎙️ You (${participantName}) joined as guest.`;
                 }
                 
+                // Update participant info display
+                updateParticipantInfo();
+
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${participantName}.`, 'system');
                 
@@ -1136,6 +1171,16 @@
                 const data = await response.json();
                 console.log('✅ Successfully joined room. Response data:', data);
                 
+                // Store participant names from server response
+                if (data.participantLabels) {
+                    if (data.participantLabels.host) {
+                        participant1Name = data.participantLabels.host;
+                    }
+                    if (data.participantLabels.guest) {
+                        participant2Name = data.participantLabels.guest;
+                    }
+                }
+                
                 if (statusElement) {
                     statusElement.className = 'connection-status connected';
                     statusElement.innerHTML = '✅ Connected to room!';
@@ -1205,6 +1250,9 @@
                     console.log('✅ Updated current speaker display');
                 }
                 
+                // Update participant info display
+                updateParticipantInfo();
+
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
                 console.log('✅ Added welcome message to conversation');
@@ -1309,10 +1357,10 @@
                         if (currentSpeaker) {
                             if (participant1Name) {
                                 // We're the host
-                                currentSpeaker.innerHTML = `🎙️ Guest is speaking...`;
+                                currentSpeaker.innerHTML = `🎙️ Guest (${participant2Name || 'Guest'}) is speaking...`;
                             } else if (participant2Name) {
                                 // We're the guest
-                                currentSpeaker.innerHTML = `🎙️ Host is speaking...`;
+                                currentSpeaker.innerHTML = `🎙️ Host (${participant1Name || 'Host'}) is speaking...`;
                             } else {
                                 currentSpeaker.innerHTML = `🎙️ Remote participant speaking...`;
                             }
@@ -1332,14 +1380,17 @@
                         if (currentSpeaker) {
                             if (participant1Name) {
                                 // We're the host
-                                currentSpeaker.innerHTML = `🎙️ Connected to guest. You can now communicate.`;
+                                currentSpeaker.innerHTML = `🎙️ Connected to guest (${participant2Name || 'Guest'}). You can now communicate.`;
                             } else if (participant2Name) {
                                 // We're the guest
-                                currentSpeaker.innerHTML = `🎙️ Connected to host. You can now communicate.`;
+                                currentSpeaker.innerHTML = `🎙️ Connected to host (${participant1Name || 'Host'}). You can now communicate.`;
                             } else {
                                 currentSpeaker.innerHTML = `🎙️ Connection established. Ready to communicate.`;
                             }
                         }
+                        
+                        // Update participant info
+                        updateParticipantInfo();
                     } else if (peerConnection.connectionState === 'failed') {
                         console.error('WebRTC connection failed');
                         alert('WebRTC connection failed. Please check your network connection.');
@@ -1537,6 +1588,20 @@
                 
                 // Start speech recognition
                 startSpeechRecognition();
+                
+                // Update UI to show local participant is speaking
+                const currentSpeaker = document.getElementById('currentSpeaker');
+                if (currentSpeaker) {
+                    if (participant1Name) {
+                        // We're the host
+                        currentSpeaker.innerHTML = `🎙️ You (${participant1Name}) are speaking...`;
+                    } else if (participant2Name) {
+                        // We're the guest
+                        currentSpeaker.innerHTML = `🎙️ You (${participant2Name}) are speaking...`;
+                    } else {
+                        currentSpeaker.innerHTML = `🎙️ You are speaking...`;
+                    }
+                }
                 
                 console.log('🎙️ Microphone access successful, streaming audio via WebRTC');
                 
@@ -1836,6 +1901,20 @@
             updateModeIndicator('setup');
             console.log('Left room and reset state');
         }
+
+        function updateParticipantInfo() {
+            const hostNameDisplay = document.getElementById('hostNameDisplay');
+            const guestNameDisplay = document.getElementById('guestNameDisplay');
+            
+            if (hostNameDisplay) {
+                hostNameDisplay.textContent = participant1Name || '-';
+            }
+            
+            if (guestNameDisplay) {
+                guestNameDisplay.textContent = participant2Name || '-';
+            }
+        }
+
     </script>
 </body>
 </html>
