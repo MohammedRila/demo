@@ -565,48 +565,48 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Room Screen (Hidden by default) -->
-            <div class="room-screen hidden" id="roomScreen">
-                <div class="room-header">
-                    <div class="timer-display" id="timer">⏱️ 00:00</div>
-                    <div class="participant-display" id="currentSpeaker">🎙️ Waiting for participants...</div>
+        <!-- Room Screen (Hidden by default) -->
+        <div class="room-screen hidden" id="roomScreen">
+            <div class="room-header">
+                <div class="timer-display" id="timer">⏱️ 00:00</div>
+                <div class="participant-display" id="currentSpeaker">🎙️ Waiting for participants...</div>
+            </div>
+
+            <div class="audio-visualization" id="audioVisualization">
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+            </div>
+
+            <div class="controls">
+                <button class="mic-button" id="micButton" disabled>
+                    🎤
+                </button>
+                <button class="btn" id="leaveRoomBtn">
+                    🚪 Leave Room
+                </button>
+            </div>
+
+            <div class="conversation-container">
+                <h3 class="conversation-title">💬 Conversation History</h3>
+                <div id="conversation">
+                    <p style="text-align: center; color: #999;">No messages yet...</p>
                 </div>
+            </div>
 
-                <div class="audio-visualization" id="audioVisualization">
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                    <div class="visualizer-bar"></div>
-                </div>
-
-                <div class="controls">
-                    <button class="mic-button" id="micButton" disabled>
-                        🎤
-                    </button>
-                    <button class="btn" id="leaveRoomBtn">
-                        🚪 Leave Room
-                    </button>
-                </div>
-
-                <div class="conversation-container">
-                    <h3 class="conversation-title">💬 Conversation History</h3>
-                    <div id="conversation">
-                        <p style="text-align: center; color: #999;">No messages yet...</p>
-                    </div>
-                </div>
-
-                <div class="ai-response">
-                    <h3 class="ai-title">🤖 AI Moderator</h3>
-                    <div class="ai-content" id="aiResponse">
-                        Room not joined yet. Connect to start!
-                    </div>
+            <div class="ai-response">
+                <h3 class="ai-title">🤖 AI Moderator</h3>
+                <div class="ai-content" id="aiResponse">
+                    Room not joined yet. Connect to start!
                 </div>
             </div>
         </div>
