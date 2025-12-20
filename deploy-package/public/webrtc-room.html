@@ -795,9 +795,24 @@
                         case 'ice-candidate':
                             handleIceCandidate(data.candidate);
                             break;
+                        case 'join-room':
+                            console.log('Another participant joined the room');
+                            // Update UI to show remote participant
+                            const currentSpeaker = document.getElementById('currentSpeaker');
+                            if (currentSpeaker) {
+                                currentSpeaker.innerHTML = '🎙️ Remote participant joined...';
+                            }
+                            
+                            // If we're the host, create and send offer
+                            // Check if we're in a room and have a peer connection
+                            if (roomId && peerConnection && participant1Name) {
+                                console.log('HomeAs host, creating offer for guest');
+                                setTimeout(createOffer, 1000);
+                            }
+                            break;
                     }
                 };
-                
+
                 socket.onclose = function(event) {
                     console.log('WebSocket connection closed');
                     document.getElementById('hostConnectionStatus').className = 'connection-status disconnected';
@@ -901,6 +916,9 @@
                 statusElement.className = 'connection-status connecting';
                 statusElement.innerHTML = '🔌 Connecting to room...';
                 
+                // Store participant info
+                participant2Name = participantName;
+                
                 // Get room info
                 const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}`);
                 
@@ -912,8 +930,28 @@
                 }
                 
                 const roomData = await response.json();
+                console.log('Room info received:', roomData);
                 
-                // Join the room
+                // Store room ID
+                this.roomId = roomId;
+                
+                // Connect to signaling server if not already connected
+                if (!socket || socket.readyState !== WebSocket.OPEN) {
+                    connectToSignalingServer();
+                    // Wait a bit for connection to establish
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                // Send join-room message to signaling server
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'join-room',
+                        roomId: roomId
+                    }));
+                    console.log('Sent join-room message to signaling server');
+                }
+                
+                // Join the room on backend
                 const joinResponse = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
                     method: 'POST',
                     headers: {
@@ -931,6 +969,7 @@
                 }
                 
                 const joinData = await joinResponse.json();
+                console.log('Join response:', joinData);
                 
                 statusElement.className = 'connection-status connected';
                 statusElement.innerHTML = '✅ Connected to room!';
@@ -947,6 +986,9 @@
                 
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${participantName}.`, 'system');
+                
+                // Create peer connection for guest
+                await createPeerConnection();
                 
                 console.log('Room joined successfully');
                 
@@ -1088,6 +1130,28 @@
                 addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
                 console.log('✅ Added welcome message to conversation');
                 
+                // If this is the host, create peer connection and prepare to send offer when guest joins
+                if (role === 'host') {
+                    console.log('HomeAs host, creating peer connection');
+                    await createPeerConnection();
+                    
+                    // Connect to signaling server if not already connected
+                    if (!socket || socket.readyState !== WebSocket.OPEN) {
+                        connectToSignalingServer();
+                    }
+                    
+                    // Send join-room message to signaling server
+                    setTimeout(() => {
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
+                                type: 'join-room',
+                                roomId: roomId
+                            }));
+                            console.log('HomeAs host, sent join-room message to signaling server');
+                        }
+                    }, 1000);
+                }
+                
                 console.log('🎉 Join room process completed successfully');
                 
             } catch (error) {
@@ -1176,14 +1240,20 @@
                     console.log('Connection state changed:', peerConnection.connectionState);
                     if (peerConnection.connectionState === 'connected') {
                         console.log('WebRTC connection established successfully');
+                        // Update UI to show connection established
+                        const currentSpeaker = document.getElementById('currentSpeaker');
+                        if (currentSpeaker) {
+                            currentSpeaker.innerHTML = '🎙️ Connection established. Ready to communicate.';
+                        }
                     } else if (peerConnection.connectionState === 'failed') {
                         console.error('WebRTC connection failed');
                         alert('WebRTC connection failed. Please check your network connection.');
                     }
                 };
                 
-                // Create offer for the other peer (only if we're initiating the connection)
-                // In a real implementation, this would be done when the second participant joins
+                // For hosts, create an offer when the second participant joins
+                // We'll handle this separately when we know we're the host
+                
                 console.log('Peer connection created successfully');
                 
             } catch (error) {
@@ -1198,24 +1268,31 @@
                 createPeerConnection();
             }
             
-            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-                .then(() => peerConnection.createAnswer())
-                .then(answer => {
-                    return peerConnection.setLocalDescription(answer);
-                })
-                .then(() => {
-                    console.log('Sending answer');
-                    if (socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            type: 'answer',
-                            answer: peerConnection.localDescription,
-                            roomId: roomId
-                        }));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error handling offer:', error);
-                });
+            // Wait a bit for peer connection to be created
+            setTimeout(() => {
+                if (peerConnection) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                        .then(() => peerConnection.createAnswer())
+                        .then(answer => {
+                            return peerConnection.setLocalDescription(answer);
+                        })
+                        .then(() => {
+                            console.log('Sending answer');
+                            if (socket && socket.readyState === WebSocket.OPEN) {
+                                socket.send(JSON.stringify({
+                                    type: 'answer',
+                                    answer: peerConnection.localDescription,
+                                    roomId: roomId
+                                }));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error handling offer:', error);
+                        });
+                } else {
+                    console.error('Peer connection not available');
+                }
+            }, 500);
         }
 
         function handleAnswer(answer) {
@@ -1224,6 +1301,30 @@
                 .catch(error => {
                     console.error('Error handling answer:', error);
                 });
+        }
+
+        async function createOffer() {
+            console.log('Creating offer');
+            if (!peerConnection) {
+                console.error('Peer connection not available');
+                return;
+            }
+            
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                console.log('Sending offer');
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'offer',
+                        offer: peerConnection.localDescription,
+                        roomId: roomId
+                    }));
+                }
+            } catch (error) {
+                console.error('Error creating offer:', error);
+            }
         }
 
         function handleIceCandidate(candidate) {
