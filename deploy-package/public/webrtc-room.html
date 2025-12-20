@@ -649,6 +649,8 @@
         let speechRecognition = null;
         let socket = null;
         let isRecording = false;
+        let startTime = null;
+        let timerInterval = null;
 
         // ICE configuration with free STUN servers
         const iceServers = {
@@ -1151,7 +1153,7 @@
                         
                         // Attach remote stream to audio element
                         if (!remoteStream) {
-                            remoteStream = new MediaStream();
+                            remoteStream = new (window.MediaStream || window.webkitMediaStream)();
                         }
                         remoteStream.addTrack(event.track);
                         audioElement.srcObject = remoteStream;
