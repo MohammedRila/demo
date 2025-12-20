@@ -115,6 +115,16 @@ wss.on('connection', (ws, req) => {
         case 'join-room':
           console.log('Client joining room:', data.roomId);
           ws.roomId = data.roomId;
+          
+          // Notify other clients in the same room that a new participant joined
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomId === ws.roomId) {
+              client.send(JSON.stringify({
+                type: 'join-room',
+                roomId: data.roomId
+              }));
+            }
+          });
           break;
         default:
           // For other message types, broadcast to all other clients in the same room
