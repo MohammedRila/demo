@@ -7,8 +7,8 @@ const http = require('http');
 const WebSocket = require('ws');
 
 const app = express();
-// Use Render's PORT environment variable, or default to 3000
-const PORT = process.env.PORT || 3000;
+// Use Render's PORT environment variable, or default to 3001
+const PORT = process.env.PORT || 3001;
 
 // Create HTTP server
 const server = http.createServer(app);
