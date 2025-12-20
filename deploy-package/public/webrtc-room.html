@@ -181,6 +181,10 @@
             border-radius: 8px;
         }
 
+        .room-screen {
+            padding: 20px;
+        }
+
         .link-display {
             background: #e3f2fd;
             padding: 15px;
@@ -899,16 +903,29 @@
         }
 
         async function joinRoom(role, name) {
+            console.log('Attempting to join room:', { role, name, roomId });
+            
             if (!roomId) {
-                alert('Room ID not found');
+                console.error('Room ID not found');
+                alert('Room ID not found. Please create a room first.');
+                return;
+            }
+            
+            if (!name) {
+                console.error('Participant name not found');
+                alert('Participant name not found. Please create a room first.');
                 return;
             }
             
             try {
                 // Update connection status
                 const statusElement = document.getElementById('hostConnectionStatus');
-                statusElement.className = 'connection-status connecting';
-                statusElement.innerHTML = '🔌 Connecting to room...';
+                if (statusElement) {
+                    statusElement.className = 'connection-status connecting';
+                    statusElement.innerHTML = '🔌 Connecting to room...';
+                }
+                
+                console.log('Making request to join room:', `${backendUrl}/api/webrtc/room/${roomId}/join`);
                 
                 const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
                     method: 'POST',
@@ -921,25 +938,47 @@
                     })
                 });
                 
+                console.log('Response received:', response.status, response.statusText);
+                
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error('Failed to join room:', response.status, errorText);
                     throw new Error(`Failed to join room: ${response.status} - ${errorText}`);
                 }
                 
                 const data = await response.json();
+                console.log('Successfully joined room:', data);
                 
-                statusElement.className = 'connection-status connected';
-                statusElement.innerHTML = '✅ Connected to room!';
+                if (statusElement) {
+                    statusElement.className = 'connection-status connected';
+                    statusElement.innerHTML = '✅ Connected to room!';
+                }
                 
                 // Switch to room screen
-                document.querySelector('.screen').classList.add('hidden');
-                document.getElementById('roomScreen').classList.remove('hidden');
+                const mainScreen = document.querySelector('.screen');
+                const roomScreen = document.getElementById('roomScreen');
+                
+                if (mainScreen && roomScreen) {
+                    mainScreen.classList.add('hidden');
+                    roomScreen.classList.remove('hidden');
+                    console.log('Switched to room screen');
+                } else {
+                    console.error('Could not find screen elements:', { mainScreen, roomScreen });
+                }
                 
                 // Update UI
                 updateModeIndicator('audio');
                 startTimer();
-                document.getElementById('micButton').disabled = false;
-                document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${name}.`;
+                
+                const micButton = document.getElementById('micButton');
+                if (micButton) {
+                    micButton.disabled = false;
+                }
+                
+                const aiResponse = document.getElementById('aiResponse');
+                if (aiResponse) {
+                    aiResponse.innerHTML = `🎙️ Room joined successfully! You are ${name}.`;
+                }
                 
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
@@ -950,8 +989,10 @@
                 console.error('Error joining room:', error);
                 
                 const statusElement = document.getElementById('hostConnectionStatus');
-                statusElement.className = 'connection-status disconnected';
-                statusElement.innerHTML = `❌ Failed to connect: ${error.message}`;
+                if (statusElement) {
+                    statusElement.className = 'connection-status disconnected';
+                    statusElement.innerHTML = `❌ Failed to connect: ${error.message}`;
+                }
                 
                 alert(`Failed to join room: ${error.message}`);
             }
