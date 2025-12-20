@@ -685,8 +685,22 @@
             backendUrl = window.location.origin;
             console.log('Backend URL set to:', backendUrl);
             
-            setupEventListeners();
-            connectToSignalingServer();
+            // Check for room joining parameters in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('roomId');
+            const role = urlParams.get('role');
+            const name = urlParams.get('name');
+            
+            if (roomId && role && name) {
+                console.log('Auto-joining room from URL parameters:', { roomId, role, name });
+                // Auto-join the room
+                setTimeout(() => {
+                    joinRoom(role, decodeURIComponent(name));
+                }, 1000);
+            } else {
+                setupEventListeners();
+                connectToSignalingServer();
+            }
             
             console.log('App initialization complete');
         });
@@ -910,6 +924,13 @@
                 document.getElementById('roomLink').value = roomLink;
                 document.getElementById('displayRoomId').textContent = roomId;
                 
+                // Hide the create room form and show room details
+                const createRoomForm = document.querySelector('#createRoomTab > .form-group');
+                if (createRoomForm) {
+                    createRoomForm.classList.add('hidden');
+                }
+                document.getElementById('createRoomBtn').classList.add('hidden');
+                
                 // Show room details
                 document.getElementById('roomDetails').classList.remove('hidden');
                 
@@ -1046,6 +1067,13 @@
         async function joinRoom(role, name) {
             console.log('=== JOIN ROOM FUNCTION CALLED ===');
             console.log('Parameters:', { role, name, roomId });
+            
+            // If we're auto-joining from URL parameters, set the roomId
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRoomId = urlParams.get('roomId');
+            if (urlRoomId && !roomId) {
+                roomId = urlRoomId;
+            }
             
             if (!roomId) {
                 console.error('❌ Room ID not found - cannot join room');
