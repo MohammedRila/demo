@@ -514,75 +514,45 @@
                 </div>
 
                 <!-- Create Room Tab -->
-                <div class="tab-content active" id="createTab">
-                    <div class="card">
-                        <h2 class="card-title">🏠 Create New Room</h2>
-                        <div class="input-group">
-                            <label for="hostName">Your Name (Host):</label>
-                            <input type="text" id="hostName" placeholder="Enter your name">
-                        </div>
-                        <div class="input-group">
-                            <label for="guestName">Guest Name:</label>
-                            <input type="text" id="guestName" placeholder="Enter guest name">
-                        </div>
-                        
-                        <button class="btn btn-primary btn-block" id="createRoomBtn">
-                            🚀 Create Room & Get Link
-                        </button>
+                <div id="createRoomTab" class="tab-content active">
+                    <h2>Create New Room</h2>
+                    <div class="form-group">
+                        <label for="hostName">Your Name (Host):</label>
+                        <input type="text" id="hostName" placeholder="Enter your name as host" />
                     </div>
-
-                    <!-- Room Created Section -->
-                    <div class="card hidden" id="roomCreatedSection">
-                        <h2 class="card-title">✅ Room Created Successfully</h2>
-                        
-                        <div class="room-info">
-                            <div class="room-info-item">
-                                <strong>Host:</strong> <span id="hostDisplayName"></span>
-                            </div>
-                            <div class="room-info-item">
-                                <strong>Guest:</strong> <span id="guestDisplayName"></span>
-                            </div>
+                    
+                    <!-- Removed guest name input - guest will enter name when joining -->
+                    
+                    <button id="createRoomBtn" class="primary-btn">Create Room</button>
+                    
+                    <div id="roomDetails" class="room-details hidden">
+                        <h3>Room Created Successfully!</h3>
+                        <p><strong>Share this link with your guest:</strong></p>
+                        <div class="room-link-container">
+                            <input type="text" id="roomLink" readonly />
+                            <button id="copyLinkBtn" class="secondary-btn">Copy Link</button>
                         </div>
-                        
-                        <div class="input-group">
-                            <label>Share this link with your guest:</label>
-                            <div class="link-display" id="roomLinkDisplay"></div>
-                            <button class="copy-btn" id="copyLinkBtn">📋 Copy Link</button>
+                        <p><strong>Or share this Room ID:</strong></p>
+                        <div class="room-id-display">
+                            <span id="displayRoomId"></span>
                         </div>
-                        
-                        <button class="btn btn-success btn-block" id="joinAsHostBtn">
-                            🎙️ Join as Host
-                        </button>
-                        
-                        <div class="connection-status connecting" id="hostConnectionStatus">
-                            🔌 Waiting for host to join...
-                        </div>
+                        <button id="joinAsHostBtn" class="primary-btn">Join as Host</button>
                     </div>
                 </div>
 
                 <!-- Join Room Tab -->
-                <div class="tab-content" id="joinTab">
-                    <div class="card">
-                        <h2 class="card-title">🚪 Join Existing Room</h2>
-                        
-                        <div class="input-group">
-                            <label for="roomIdInput">Room ID:</label>
-                            <input type="text" id="roomIdInput" placeholder="Enter room ID">
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="participantName">Your Name:</label>
-                            <input type="text" id="participantName" placeholder="Enter your name">
-                        </div>
-                        
-                        <button class="btn btn-primary btn-block" id="joinRoomBtn">
-                            🎙️ Join Room
-                        </button>
-                        
-                        <div class="connection-status connecting" id="joinConnectionStatus">
-                            🔌 Waiting to join room...
-                        </div>
+                <div id="joinRoomTab" class="tab-content">
+                    <h2>Join Existing Room</h2>
+                    <div class="form-group">
+                        <label for="roomIdInput">Room ID:</label>
+                        <input type="text" id="roomIdInput" placeholder="Enter room ID" />
                     </div>
+                    <div class="form-group">
+                        <label for="participantName">Your Name:</label>
+                        <input type="text" id="participantName" placeholder="Enter your name" />
+                    </div>
+                    <button id="joinRoomBtn" class="primary-btn">Join Room</button>
+                    <div id="joinConnectionStatus" class="connection-status">🔌 Enter room ID and your name to connect</div>
                 </div>
             </div>
         </div>
@@ -842,18 +812,18 @@
             console.log('=== CREATE ROOM FUNCTION CALLED ===');
             
             const hostName = document.getElementById('hostName').value.trim();
-            const guestName = document.getElementById('guestName').value.trim();
-
-            console.log('Participant names:', hostName, guestName);
-
-            if (!hostName || !guestName) {
-                console.log('ERROR: Missing participant names');
-                alert('Please enter names for both participants.');
+            // Remove guestName requirement - guest will enter their name when joining
+            
+            console.log('Host name:', hostName);
+            
+            if (!hostName) {
+                console.log('ERROR: Missing host name');
+                alert('Please enter your name as the host.');
                 return;
             }
-
+            
             try {
-                // Create room on backend
+                // Create room on backend (only with host name)
                 console.log('Creating room on backend...');
                 const response = await fetch(`${backendUrl}/api/webrtc/room/create-link`, {
                     method: 'POST',
@@ -861,8 +831,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        participant1Name: hostName,
-                        participant2Name: guestName
+                        participant1Name: hostName
+                        // No participant2Name needed - guest will provide when joining
                     })
                 });
 
@@ -872,23 +842,31 @@
                 }
 
                 const data = await response.json();
+                console.log('✅ Room created successfully:', data);
+                
+                // Store room info
                 roomId = data.roomId;
                 roomLink = data.roomLink;
-                
-                // Set the participant names for later use
                 participant1Name = hostName;
-                participant2Name = guestName;
+                // No participant2Name since guest will provide when joining
                 
-                // Display room info
-                document.getElementById('hostDisplayName').textContent = hostName;
-                document.getElementById('guestDisplayName').textContent = guestName;
-                document.getElementById('roomLinkDisplay').textContent = roomLink;
+                // Update UI
+                document.getElementById('roomLink').value = roomLink;
+                document.getElementById('displayRoomId').textContent = roomId;
                 
-                // Show room created section
-                document.getElementById('roomCreatedSection').classList.remove('hidden');
+                // Show room details
+                document.getElementById('roomDetails').classList.remove('hidden');
                 
-                console.log('Room created successfully:', roomId);
+                // Update connection status
+                const statusElement = document.getElementById('hostConnectionStatus');
+                if (statusElement) {
+                    statusElement.className = 'connection-status connected';
+                    statusElement.innerHTML = '✅ Room created successfully!';
+                    console.log('✅ Updated connection status');
+                }
                 
+                console.log('🎉 Room creation process completed');
+
             } catch (error) {
                 console.error('Error creating room:', error);
                 alert(`Failed to create room: ${error.message}`);

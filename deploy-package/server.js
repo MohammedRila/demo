@@ -231,36 +231,29 @@ app.post('/api/webrtc/room/create-link', (req, res) => {
   console.log('Request received at:', new Date().toISOString());
   console.log('Request body:', req.body);
   
-  const { participant1Name, participant2Name } = req.body;
+  const { participant1Name } = req.body;
+  // Remove participant2Name requirement - guest will provide when joining
   
   console.log('Extracted values:');
   console.log('- participant1Name:', participant1Name);
-  console.log('- participant2Name:', participant2Name);
+  // No participant2Name logging since it's not required
   
-  if (!participant1Name || !participant2Name) {
-    console.log('VALIDATION FAILED: Missing required fields');
+  if (!participant1Name) {
+    console.log('VALIDATION FAILED: Missing required field');
     return res.status(400).json({ 
-      error: 'Missing required fields: participant1Name, participant2Name'
+      error: 'Missing required field: participant1Name'
     });
   }
   
-  // Handle same usernames
-  let displayName1 = participant1Name;
-  let displayName2 = participant2Name;
-  
-  if (participant1Name.toLowerCase() === participant2Name.toLowerCase()) {
-    displayName1 = `${participant1Name} (Host)`;
-    displayName2 = `${participant2Name} (Guest)`;
-    console.log('Same names detected, using display names:', displayName1, displayName2);
-  }
+  // No need to handle same usernames here since guest name is provided later
   
   console.log('Validation passed, creating room');
   
   const roomId = generateSessionId(); // Reuse existing function
   const room = {
     id: roomId,
-    participant1Name: displayName1,
-    participant2Name: displayName2,
+    participant1Name: participant1Name, // Host name
+    participant2Name: null, // Will be set when guest joins
     createdAt: new Date(),
     conversationHistory: [],
     bannedParticipants: [],
@@ -314,10 +307,26 @@ app.post('/api/webrtc/room/:roomId/join', (req, res) => {
     return res.status(404).json({ error: 'Room not found' });
   }
   
-  // Mark participant as joined
+  // Handle participant name assignment
   if (participantRole === 'host') {
+    // Host should match the name used when creating the room
+    if (participantName !== room.participant1Name) {
+      console.log('Host name mismatch:', participantName, '!=', room.participant1Name);
+      // We'll allow it but log the difference
+    }
     room.hostJoined = true;
   } else if (participantRole === 'guest') {
+    // Assign guest name and handle same name scenario
+    let displayName = participantName;
+    
+    // Check if guest name matches host name
+    if (participantName.toLowerCase() === room.participant1Name.toLowerCase()) {
+      room.participant1Name = `${room.participant1Name} (Host)`;
+      displayName = `${participantName} (Guest)`;
+      console.log('Same names detected, using display names:', room.participant1Name, displayName);
+    }
+    
+    room.participant2Name = displayName;
     room.guestJoined = true;
   }
   
