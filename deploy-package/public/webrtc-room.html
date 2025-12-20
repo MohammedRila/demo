@@ -797,6 +797,10 @@
                 roomId = data.roomId;
                 roomLink = data.roomLink;
                 
+                // Set the participant names for later use
+                participant1Name = hostName;
+                participant2Name = guestName;
+                
                 // Display room info
                 document.getElementById('hostDisplayName').textContent = hostName;
                 document.getElementById('guestDisplayName').textContent = guestName;
