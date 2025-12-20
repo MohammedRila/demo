@@ -167,6 +167,15 @@
             color: white;
         }
 
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
         .hidden {
             display: none;
         }
@@ -599,7 +608,7 @@
         <div class="room-screen hidden" id="roomScreen">
             <div class="room-header">
                 <div class="timer-display" id="timer">⏱️ 00:00</div>
-                <div class="participant-display" id="currentSpeaker">🎙️ Waiting for participants...</div>
+                <div class="participant-display" id="currentSpeaker">🎙️ Room joined. Waiting for connection...</div>
             </div>
 
             <div class="audio-visualization" id="audioVisualization">
@@ -619,7 +628,7 @@
                 <button class="mic-button" id="micButton" disabled>
                     🎤
                 </button>
-                <button class="btn" id="leaveRoomBtn">
+                <button class="btn btn-danger" id="leaveRoomBtn">
                     🚪 Leave Room
                 </button>
             </div>
