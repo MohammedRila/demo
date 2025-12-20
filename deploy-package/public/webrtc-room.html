@@ -654,7 +654,7 @@
         });
 
         function setupEventListeners() {
-            console.log('Setting up event listeners');
+            console.log('🔧 Setting up event listeners');
             
             // Tab switching
             document.querySelectorAll('.tab-btn').forEach(button => {
@@ -673,36 +673,74 @@
             });
             
             // Create room button
-            document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+            const createRoomBtn = document.getElementById('createRoomBtn');
+            if (createRoomBtn) {
+                createRoomBtn.addEventListener('click', createRoom);
+                console.log('✅ Added event listener to createRoomBtn');
+            } else {
+                console.error('❌ Could not find createRoomBtn');
+            }
             
             // Copy link button
-            document.getElementById('copyLinkBtn').addEventListener('click', copyRoomLink);
+            const copyLinkBtn = document.getElementById('copyLinkBtn');
+            if (copyLinkBtn) {
+                copyLinkBtn.addEventListener('click', copyRoomLink);
+                console.log('✅ Added event listener to copyLinkBtn');
+            } else {
+                console.error('❌ Could not find copyLinkBtn');
+            }
             
             // Join as host button
-            document.getElementById('joinAsHostBtn').addEventListener('click', function() {
-                joinRoom('host', participant1Name);
-            });
+            const joinAsHostBtn = document.getElementById('joinAsHostBtn');
+            if (joinAsHostBtn) {
+                joinAsHostBtn.addEventListener('click', function() {
+                    console.log('👆 Join as host button clicked');
+                    console.log('Current participant1Name:', participant1Name);
+                    joinRoom('host', participant1Name);
+                });
+                console.log('✅ Added event listener to joinAsHostBtn');
+            } else {
+                console.error('❌ Could not find joinAsHostBtn');
+            }
             
             // Join room button
-            document.getElementById('joinRoomBtn').addEventListener('click', function() {
-                const roomId = document.getElementById('roomIdInput').value.trim();
-                const participantName = document.getElementById('participantName').value.trim();
-                
-                if (!roomId || !participantName) {
-                    alert('Please enter both room ID and your name');
-                    return;
-                }
-                
-                joinExistingRoom(roomId, participantName);
-            });
+            const joinRoomBtn = document.getElementById('joinRoomBtn');
+            if (joinRoomBtn) {
+                joinRoomBtn.addEventListener('click', function() {
+                    const roomId = document.getElementById('roomIdInput').value.trim();
+                    const participantName = document.getElementById('participantName').value.trim();
+                    
+                    if (!roomId || !participantName) {
+                        alert('Please enter both room ID and your name');
+                        return;
+                    }
+                    
+                    joinExistingRoom(roomId, participantName);
+                });
+                console.log('✅ Added event listener to joinRoomBtn');
+            } else {
+                console.error('❌ Could not find joinRoomBtn');
+            }
             
             // Mic button
-            document.getElementById('micButton').addEventListener('click', toggleRecording);
+            const micButton = document.getElementById('micButton');
+            if (micButton) {
+                micButton.addEventListener('click', toggleRecording);
+                console.log('✅ Added event listener to micButton');
+            } else {
+                console.error('❌ Could not find micButton');
+            }
             
             // Leave room button
-            document.getElementById('leaveRoomBtn').addEventListener('click', leaveRoom);
+            const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+            if (leaveRoomBtn) {
+                leaveRoomBtn.addEventListener('click', leaveRoom);
+                console.log('✅ Added event listener to leaveRoomBtn');
+            } else {
+                console.error('❌ Could not find leaveRoomBtn');
+            }
             
-            console.log('All event listeners set up');
+            console.log('🎉 Event listeners setup complete');
         }
 
         function connectToSignalingServer() {
@@ -903,30 +941,40 @@
         }
 
         async function joinRoom(role, name) {
-            console.log('Attempting to join room:', { role, name, roomId });
+            console.log('=== JOIN ROOM FUNCTION CALLED ===');
+            console.log('Parameters:', { role, name, roomId });
             
             if (!roomId) {
-                console.error('Room ID not found');
+                console.error('❌ Room ID not found - cannot join room');
                 alert('Room ID not found. Please create a room first.');
                 return;
             }
             
             if (!name) {
-                console.error('Participant name not found');
+                console.error('❌ Participant name not found - cannot join room');
                 alert('Participant name not found. Please create a room first.');
                 return;
             }
             
             try {
+                console.log('🔧 Attempting to join room with parameters:', { 
+                    roleId: roomId, 
+                    role: role, 
+                    participantName: name,
+                    url: `${backendUrl}/api/webrtc/room/${roomId}/join`
+                });
+                
                 // Update connection status
                 const statusElement = document.getElementById('hostConnectionStatus');
                 if (statusElement) {
                     statusElement.className = 'connection-status connecting';
                     statusElement.innerHTML = '🔌 Connecting to room...';
+                    console.log('✅ Updated connection status to connecting');
+                } else {
+                    console.warn('⚠️ Could not find hostConnectionStatus element');
                 }
                 
-                console.log('Making request to join room:', `${backendUrl}/api/webrtc/room/${roomId}/join`);
-                
+                console.log('📡 Making POST request to join room');
                 const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/join`, {
                     method: 'POST',
                     headers: {
@@ -938,55 +986,94 @@
                     })
                 });
                 
-                console.log('Response received:', response.status, response.statusText);
+                console.log('📥 Response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Failed to join room:', response.status, errorText);
+                    console.error('❌ Failed to join room:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        errorText: errorText
+                    });
                     throw new Error(`Failed to join room: ${response.status} - ${errorText}`);
                 }
                 
                 const data = await response.json();
-                console.log('Successfully joined room:', data);
+                console.log('✅ Successfully joined room. Response data:', data);
                 
                 if (statusElement) {
                     statusElement.className = 'connection-status connected';
                     statusElement.innerHTML = '✅ Connected to room!';
+                    console.log('✅ Updated connection status to connected');
                 }
                 
                 // Switch to room screen
+                console.log('🔄 Attempting to switch to room screen');
                 const mainScreen = document.querySelector('.screen');
                 const roomScreen = document.getElementById('roomScreen');
                 
+                console.log('🔍 Found elements:', { 
+                    mainScreen: !!mainScreen, 
+                    roomScreen: !!roomScreen,
+                    mainScreenClasses: mainScreen ? mainScreen.className : 'N/A',
+                    roomScreenClasses: roomScreen ? roomScreen.className : 'N/A'
+                });
+                
                 if (mainScreen && roomScreen) {
+                    console.log('🚪 Hiding main screen and showing room screen');
                     mainScreen.classList.add('hidden');
                     roomScreen.classList.remove('hidden');
-                    console.log('Switched to room screen');
+                    console.log('✅ Successfully switched to room screen');
+                    
+                    // Log the final state
+                    console.log('📊 Final element states:', {
+                        mainScreenHidden: mainScreen.classList.contains('hidden'),
+                        roomScreenHidden: roomScreen.classList.contains('hidden')
+                    });
                 } else {
-                    console.error('Could not find screen elements:', { mainScreen, roomScreen });
+                    console.error('❌ Could not find required screen elements:', { 
+                        mainScreenExists: !!mainScreen, 
+                        roomScreenExists: !!roomScreen,
+                        allElements: Array.from(document.querySelectorAll('*')).filter(el => el.id || el.className).map(el => ({
+                            tag: el.tagName,
+                            id: el.id,
+                            className: el.className
+                        }))
+                    });
                 }
                 
                 // Update UI
+                console.log('🎨 Updating UI elements');
                 updateModeIndicator('audio');
                 startTimer();
                 
                 const micButton = document.getElementById('micButton');
                 if (micButton) {
                     micButton.disabled = false;
+                    console.log('✅ Enabled microphone button');
                 }
                 
                 const aiResponse = document.getElementById('aiResponse');
                 if (aiResponse) {
                     aiResponse.innerHTML = `🎙️ Room joined successfully! You are ${name}.`;
+                    console.log('✅ Updated AI response display');
                 }
                 
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
+                console.log('✅ Added welcome message to conversation');
                 
-                console.log(`${role} joined room successfully`);
+                console.log('🎉 Join room process completed successfully');
                 
             } catch (error) {
-                console.error('Error joining room:', error);
+                console.error('💥 Error in joinRoom function:', {
+                    message: error.message,
+                    stack: error.stack
+                });
                 
                 const statusElement = document.getElementById('hostConnectionStatus');
                 if (statusElement) {
