@@ -1113,10 +1113,17 @@
                 // Add local stream to peer connection (if already available)
                 if (localStream) {
                     localStream.getTracks().forEach(track => {
-                        peerConnection.addTrack(track, localStream);
+                        // Check if track is already added
+                        const sender = peerConnection.getSenders().find(s => s.track === track);
+                        if (!sender) {
+                            console.log('➕ Adding existing track to new peer connection:', track.kind);
+                            peerConnection.addTrack(track, localStream);
+                        } else {
+                            console.log('⏭️ Track already exists in new peer connection:', track.kind);
+                        }
                     });
                 }
-                
+
                 // Handle ICE candidates
                 peerConnection.onicecandidate = function(event) {
                     if (event.candidate) {
@@ -1307,10 +1314,19 @@
                         await createPeerConnection();
                     }
                     
-                    // Add local stream to peer connection
-                    localStream.getTracks().forEach(track => {
-                        peerConnection.addTrack(track, localStream);
-                    });
+                    // Add local stream tracks to peer connection (avoid duplicates)
+                    if (localStream && peerConnection) {
+                        localStream.getTracks().forEach(track => {
+                            // Check if track is already added
+                            const sender = peerConnection.getSenders().find(s => s.track === track);
+                            if (!sender) {
+                                console.log('➕ Adding track to peer connection:', track.kind);
+                                peerConnection.addTrack(track, localStream);
+                            } else {
+                                console.log('⏭️ Track already exists in peer connection:', track.kind);
+                            }
+                        });
+                    }
                     
                     // Start audio level monitoring for visualization
                     startAudioLevelMonitoring();
