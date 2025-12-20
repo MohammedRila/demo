@@ -331,27 +331,47 @@
         .audio-visualization {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end;
             height: 100px;
-            margin: 20px 0;
+            gap: 5px;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(67, 97, 238, 0.1);
+            border-radius: 15px;
+            transition: var(--transition);
+        }
+
+        .audio-visualization.recording {
+            background: rgba(67, 97, 238, 0.2);
         }
 
         .visualizer-bar {
-            width: 5px;
-            height: 20px;
+            width: 12px;
+            height: 10px;
             background: var(--primary-color);
-            margin: 0 2px;
-            border-radius: 2px;
-            animation: visualizer 1s infinite alternate paused;
+            border-radius: 3px;
+            transition: height 0.1s ease-out;
         }
 
-        .recording .visualizer-bar {
-            animation-play-state: running;
+        .audio-visualization.recording .visualizer-bar {
+            animation: pulseBars 0.5s infinite alternate;
         }
 
-        @keyframes visualizer {
-            from { height: 20px; }
-            to { height: 60px; }
+        @keyframes pulseBars {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
+
+        .audio-visualization.recording-fallback .visualizer-bar {
+            animation: randomBars 0.3s infinite alternate;
+        }
+
+        @keyframes randomBars {
+            0% { height: 5%; }
+            25% { height: 25%; }
+            50% { height: 60%; }
+            75% { height: 35%; }
+            100% { height: 80%; }
         }
 
         .conversation-container {
@@ -1113,11 +1133,36 @@
                 
                 // Handle incoming tracks
                 peerConnection.ontrack = function(event) {
-                    console.log('Received remote track');
-                    // In a real implementation, we'd handle the remote stream here
-                    // For example, we could attach it to an audio element to play the remote audio
+                    console.log('Received remote track:', event.track.kind);
+                    if (event.track.kind === 'audio') {
+                        console.log('🔊 Received remote audio track');
+                        
+                        // Create audio element to play remote audio
+                        const audioElement = document.createElement('audio');
+                        audioElement.autoplay = true;
+                        audioElement.controls = false;
+                        audioElement.style.display = 'none';
+                        
+                        // Attach remote stream to audio element
+                        if (!remoteStream) {
+                            remoteStream = new MediaStream();
+                        }
+                        remoteStream.addTrack(event.track);
+                        audioElement.srcObject = remoteStream;
+                        
+                        // Add to document
+                        document.body.appendChild(audioElement);
+                        
+                        // Update UI to show remote participant
+                        const currentSpeaker = document.getElementById('currentSpeaker');
+                        if (currentSpeaker) {
+                            currentSpeaker.innerHTML = '🎙️ Remote participant speaking...';
+                        }
+                        
+                        console.log('✅ Remote audio is now playing');
+                    }
                 };
-                
+
                 // Handle connection state changes
                 peerConnection.onconnectionstatechange = function() {
                     console.log('Connection state changed:', peerConnection.connectionState);
@@ -1246,8 +1291,16 @@
             try {
                 // Get user media (microphone)
                 if (!localStream) {
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                    console.log('Got local stream:', localStream);
+                    console.log('Requesting microphone access...');
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }, 
+                        video: false 
+                    });
+                    console.log('✅ Got local stream:', localStream);
                     
                     // Create peer connection if not already created
                     if (!peerConnection) {
@@ -1258,25 +1311,22 @@
                     localStream.getTracks().forEach(track => {
                         peerConnection.addTrack(track, localStream);
                     });
+                    
+                    // Start audio level monitoring for visualization
+                    startAudioLevelMonitoring();
                 }
                 
-                // In a real WebRTC implementation, audio is streamed via the peer connection
-                // For now, we'll still simulate the transcript for AI moderation
-                setTimeout(() => {
-                    const senderName = participant1Name; // In real implementation, we'd know who's speaking
-                    const simulatedTranscript = `This is a simulated voice message from ${senderName}.`;
-                    handleTranscript(simulatedTranscript, senderName);
-                }, 2000);
+                console.log('🎙️ Microphone access successful, streaming audio via WebRTC');
                 
             } catch (error) {
-                console.error('Error accessing microphone:', error);
-                alert('Failed to access microphone. Please check your permissions.');
+                console.error('❌ Error accessing microphone:', error);
+                alert(`Failed to access microphone. Please check your permissions.\nError: ${error.message}`);
                 stopRecording();
                 return;
             }
             
             document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> Listening...';
-            console.log('Recording started');
+            console.log('🎤 Recording started');
         }
 
         function stopRecording() {
@@ -1289,6 +1339,57 @@
             document.getElementById('audioVisualization').classList.remove('recording');
             
             console.log('Recording stopped');
+        }
+
+        function startAudioLevelMonitoring() {
+            if (!localStream) return;
+            
+            console.log('📊 Starting audio level monitoring');
+            
+            try {
+                // Create audio context for monitoring
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(localStream);
+                
+                microphone.connect(analyser);
+                analyser.fftSize = 32; // Small FFT size for simple visualization
+                
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                // Update visualization based on audio levels
+                function updateVisualization() {
+                    if (!isRecording) return;
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    // Calculate average volume
+                    let sum = 0;
+                    for (let i = 0; i < bufferLength; i++) {
+                        sum += dataArray[i];
+                    }
+                    const average = sum / bufferLength;
+                    
+                    // Update visualizer bars based on audio level
+                    const bars = document.querySelectorAll('.visualizer-bar');
+                    bars.forEach((bar, index) => {
+                        // Map audio level to bar height (0-100%)
+                        const level = Math.min(100, (average / 255) * 100 + (Math.random() * 20));
+                        bar.style.height = `${Math.max(5, level)}%`;
+                    });
+                    
+                    requestAnimationFrame(updateVisualization);
+                }
+                
+                updateVisualization();
+                console.log('✅ Audio level monitoring started');
+                
+            } catch (error) {
+                console.error('⚠️ Could not start audio level monitoring:', error);
+                // Fallback to simple animation
+                document.getElementById('audioVisualization').classList.add('recording-fallback');
+            }
         }
 
         async function handleTranscript(transcript, senderName = null) {
