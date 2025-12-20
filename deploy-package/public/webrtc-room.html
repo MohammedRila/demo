@@ -101,6 +101,10 @@
             margin-bottom: 20px;
         }
 
+        .form-group {
+            margin-bottom: 20px;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -492,6 +496,40 @@
             font-size: 0.9rem;
             border-top: 1px solid #eee;
         }
+
+        .primary-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .primary-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .secondary-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .secondary-btn:hover {
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 <body>
@@ -509,8 +547,8 @@
         <div class="screen">
             <div class="tab-container">
                 <div class="tab-buttons">
-                    <button class="tab-btn active" data-tab="create">Create Room</button>
-                    <button class="tab-btn" data-tab="join">Join Room</button>
+                    <button class="tab-btn active" data-tab="createRoom">Create Room</button>
+                    <button class="tab-btn" data-tab="joinRoom">Join Room</button>
                 </div>
 
                 <!-- Create Room Tab -->
@@ -659,7 +697,7 @@
                     
                     // Show corresponding tab content
                     const tabId = this.getAttribute('data-tab');
-                    document.getElementById(`${tabId}Tab`).classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
                 });
             });
             
@@ -770,7 +808,16 @@
                             // Update UI to show remote participant
                             const currentSpeaker = document.getElementById('currentSpeaker');
                             if (currentSpeaker) {
-                                currentSpeaker.innerHTML = '🎙️ Remote participant joined...';
+                                // Check if we're the host or guest to customize message
+                                if (participant1Name) {
+                                    // We're the host
+                                    currentSpeaker.innerHTML = `🎙️ Guest joined the room. You can now communicate.`;
+                                } else if (participant2Name) {
+                                    // We're the guest
+                                    currentSpeaker.innerHTML = `🎙️ Host is in the room. You can now communicate.`;
+                                } else {
+                                    currentSpeaker.innerHTML = `🎙️ Another participant joined. You can now communicate.`;
+                                }
                             }
                             
                             // If we're the host, create and send offer
@@ -962,6 +1009,12 @@
                 document.getElementById('micButton').disabled = false;
                 document.getElementById('aiResponse').innerHTML = `🎙️ Room joined successfully! You are ${participantName}.`;
                 
+                // Update current speaker display
+                const currentSpeaker = document.getElementById('currentSpeaker');
+                if (currentSpeaker) {
+                    currentSpeaker.innerHTML = `🎙️ You (${participantName}) joined as guest.`;
+                }
+                
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${participantName}.`, 'system');
                 
@@ -1104,6 +1157,17 @@
                     console.log('✅ Updated AI response display');
                 }
                 
+                // Update current speaker display with participant info
+                const currentSpeaker = document.getElementById('currentSpeaker');
+                if (currentSpeaker) {
+                    if (role === 'host') {
+                        currentSpeaker.innerHTML = `🎙️ You (${name}) are the host. Waiting for guest...`;
+                    } else {
+                        currentSpeaker.innerHTML = `🎙️ You (${name}) joined as guest.`;
+                    }
+                    console.log('✅ Updated current speaker display');
+                }
+                
                 // Add welcome message to conversation
                 addMessageToConversation('System', `Room joined successfully. You are ${name}.`, 'system');
                 console.log('✅ Added welcome message to conversation');
@@ -1206,7 +1270,15 @@
                         // Update UI to show remote participant
                         const currentSpeaker = document.getElementById('currentSpeaker');
                         if (currentSpeaker) {
-                            currentSpeaker.innerHTML = '🎙️ Remote participant speaking...';
+                            if (participant1Name) {
+                                // We're the host
+                                currentSpeaker.innerHTML = `🎙️ Guest is speaking...`;
+                            } else if (participant2Name) {
+                                // We're the guest
+                                currentSpeaker.innerHTML = `🎙️ Host is speaking...`;
+                            } else {
+                                currentSpeaker.innerHTML = `🎙️ Remote participant speaking...`;
+                            }
                         }
                         
                         console.log('✅ Remote audio is now playing');
@@ -1221,11 +1293,25 @@
                         // Update UI to show connection established
                         const currentSpeaker = document.getElementById('currentSpeaker');
                         if (currentSpeaker) {
-                            currentSpeaker.innerHTML = '🎙️ Connection established. Ready to communicate.';
+                            if (participant1Name) {
+                                // We're the host
+                                currentSpeaker.innerHTML = `🎙️ Connected to guest. You can now communicate.`;
+                            } else if (participant2Name) {
+                                // We're the guest
+                                currentSpeaker.innerHTML = `🎙️ Connected to host. You can now communicate.`;
+                            } else {
+                                currentSpeaker.innerHTML = `🎙️ Connection established. Ready to communicate.`;
+                            }
                         }
                     } else if (peerConnection.connectionState === 'failed') {
                         console.error('WebRTC connection failed');
                         alert('WebRTC connection failed. Please check your network connection.');
+                        
+                        // Update UI to show connection failed
+                        const currentSpeaker = document.getElementById('currentSpeaker');
+                        if (currentSpeaker) {
+                            currentSpeaker.innerHTML = `❌ WebRTC connection failed. Please refresh the page.`;
+                        }
                     }
                 };
                 
