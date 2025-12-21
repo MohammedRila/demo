@@ -237,16 +237,11 @@ app.post('/api/webrtc/room', (req, res) => {
 
 // Add endpoint to create a room and get a shareable link
 app.post('/api/webrtc/room/create-link', (req, res) => {
-  console.log('=== CREATE ROOM LINK REQUEST ===');
-  console.log('Request received at:', new Date().toISOString());
-  console.log('Request body:', req.body);
+  console.log('=== CREATE WEBRTC ROOM ENDPOINT ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
   
   const { participant1Name } = req.body;
-  // Remove participant2Name requirement - guest will provide when joining
-  
-  console.log('Extracted values:');
-  console.log('- participant1Name:', participant1Name);
-  // No participant2Name logging since it's not required
   
   if (!participant1Name) {
     console.log('VALIDATION FAILED: Missing required field');
@@ -267,6 +262,7 @@ app.post('/api/webrtc/room/create-link', (req, res) => {
     createdAt: new Date(),
     conversationHistory: [],
     bannedParticipants: [],
+    offenses: {}, // Track offenses for each participant
     hostJoined: false,
     guestJoined: false
   };
@@ -317,6 +313,11 @@ app.post('/api/webrtc/room/:roomId/join', (req, res) => {
     return res.status(404).json({ error: 'Room not found' });
   }
   
+  // Initialize offenses tracking if not exists
+  if (!room.offenses) {
+    room.offenses = {};
+  }
+  
   // Handle participant name assignment
   if (participantRole === 'host') {
     // Host should match the name used when creating the room
@@ -364,6 +365,14 @@ app.post('/api/webrtc/:roomId/moderate', async (req, res) => {
     return res.status(404).json({ error: 'Room not found' });
   }
   
+  // Check if speaker is already banned
+  if (room.bannedParticipants.includes(speaker)) {
+    return res.status(403).json({ 
+      error: 'You have been banned from this room for inappropriate behavior',
+      banned: true
+    });
+  }
+  
   // Add to conversation history
   const entry = {
     speaker,
@@ -372,6 +381,51 @@ app.post('/api/webrtc/:roomId/moderate', async (req, res) => {
   };
   
   room.conversationHistory.push(entry);
+  
+  // Check for explicit content
+  const lowercaseContent = content.toLowerCase();
+  const explicitWords = ['fuck', 'shit', 'damn', 'hell', 'bitch', 'asshole', 'crap', 'bastard'];
+  const hasExplicitContent = explicitWords.some(word => lowercaseContent.includes(word));
+  
+  // Track offenses if explicit content is detected
+  if (hasExplicitContent) {
+    // Initialize offense tracking for this speaker if not exists
+    if (!room.offenses) {
+      room.offenses = {};
+    }
+    
+    if (!room.offenses[speaker]) {
+      room.offenses[speaker] = 0;
+    }
+    
+    // Increment offense count
+    room.offenses[speaker]++;
+    
+    // Check if this is the third offense
+    if (room.offenses[speaker] >= 3) {
+      // Ban the participant
+      room.bannedParticipants.push(speaker);
+      
+      res.json({
+        success: true,
+        aiResponse: `[🚨 BANNED] ${speaker} has been permanently banned for repeated inappropriate behavior.`,
+        banned: true
+      });
+      
+      return;
+    } else {
+      // Warn the participant
+      const warningsLeft = 3 - room.offenses[speaker];
+      res.json({
+        success: true,
+        aiResponse: `[⚠️ WARNING #${room.offenses[speaker]}] Inappropriate language detected. ${warningsLeft} warning(s) left before permanent ban.`,
+        warning: true,
+        warningsLeft: warningsLeft
+      });
+      
+      return;
+    }
+  }
   
   try {
     // Create a prompt for the AI moderator
@@ -400,19 +454,9 @@ If there's an issue, address it politely but firmly.`;
     // Get AI response
     const aiResponse = await callPerplexityAI(prompt, room, entry, 512);
     
-    // Check for explicit content
-    const lowercaseContent = content.toLowerCase();
-    const explicitWords = ['fuck', 'shit', 'damn', 'hell', 'bitch', 'asshole', 'crap'];
-    const hasExplicitContent = explicitWords.some(word => lowercaseContent.includes(word));
-    
-    let finalResponse = aiResponse;
-    if (hasExplicitContent) {
-      finalResponse = `[⚠️ Reminder: Please keep conversation respectful] ${aiResponse}`;
-    }
-    
     res.json({
       success: true,
-      aiResponse: finalResponse
+      aiResponse: aiResponse
     });
     
   } catch (error) {

@@ -105,26 +105,31 @@
             margin-bottom: 20px;
         }
 
-        label {
+        .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--dark-color);
+            color: var(--primary-color);
         }
 
-        input, select {
+        .form-group input {
             width: 100%;
-            padding: 12px 15px;
+            padding: 14px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 1rem;
             transition: var(--transition);
+            box-sizing: border-box;
         }
 
-        input:focus, select:focus {
+        .form-group input:focus {
             border-color: var(--primary-color);
             outline: none;
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: #aaa;
         }
 
         .btn {
@@ -218,29 +223,26 @@
         }
 
         .connection-status {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
             text-align: center;
-            font-weight: bold;
+            font-weight: 500;
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+            border: 1px solid rgba(67, 97, 238, 0.3);
         }
 
-        .connected {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .connection-status.connected {
+            background: rgba(66, 165, 55, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(66, 165, 55, 0.3);
         }
 
-        .connecting {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .disconnected {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .connection-status.disconnected {
+            background: rgba(230, 57, 70, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(230, 57, 70, 0.3);
         }
 
         .tab-container {
@@ -299,55 +301,20 @@
             color: var(--primary-color);
         }
 
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .mic-button {
-            background: var(--success-color);
-            color: white;
-            border: none;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-        }
-
-        .mic-button.recording {
-            background: var(--danger-color);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .mic-button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-            animation: none;
+        .audio-section {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
         }
 
         .audio-visualization {
             display: flex;
             justify-content: center;
             align-items: flex-end;
-            height: 100px;
-            gap: 5px;
-            margin: 30px 0;
+            height: 120px;
+            gap: 8px;
+            margin-bottom: 30px;
             padding: 20px;
             background: rgba(67, 97, 238, 0.1);
             border-radius: 15px;
@@ -356,13 +323,14 @@
 
         .audio-visualization.recording {
             background: rgba(67, 97, 238, 0.2);
+            box-shadow: 0 0 20px rgba(67, 97, 238, 0.3);
         }
 
         .visualizer-bar {
-            width: 12px;
+            width: 15px;
             height: 10px;
             background: var(--primary-color);
-            border-radius: 3px;
+            border-radius: 5px;
             transition: height 0.1s ease-out;
         }
 
@@ -385,6 +353,50 @@
             50% { height: 60%; }
             75% { height: 35%; }
             100% { height: 80%; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mic-button {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 1.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .mic-button.recording {
+            background: var(--danger-color);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 20px rgba(230, 57, 70, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .mic-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            animation: none;
+            box-shadow: none;
         }
 
         .conversation-container {
@@ -562,6 +574,76 @@
             color: var(--success-color);
         }
 
+        .success-card {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-card h3 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+
+        .room-info-section {
+            margin-bottom: 25px;
+        }
+
+        .room-info-section p {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .link-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .link-container input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: monospace;
+        }
+
+        .link-container input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .link-container input:focus {
+            border-color: white;
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .room-id-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .join-form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
     </style>
 </head>
 <body>
@@ -585,7 +667,7 @@
 
                 <!-- Create Room Tab -->
                 <div id="createRoomTab" class="tab-content active">
-                    <h2>Create New Room</h2>
+                    <h2>🚀 Create New Room</h2>
                     <div class="form-group">
                         <label for="hostName">Your Name (Host):</label>
                         <input type="text" id="hostName" placeholder="Enter your name as host" />
@@ -596,33 +678,41 @@
                     <button id="createRoomBtn" class="primary-btn">Create Room</button>
                     
                     <div id="roomDetails" class="room-details hidden">
-                        <h3>Room Created Successfully!</h3>
-                        <p><strong>Share this link with your guest:</strong></p>
-                        <div class="room-link-container">
-                            <input type="text" id="roomLink" readonly />
-                            <button id="copyLinkBtn" class="secondary-btn">Copy Link</button>
+                        <div class="success-card">
+                            <h3>✅ Room Created Successfully!</h3>
+                            <div class="room-info-section">
+                                <p><strong>🔗 Share this link with your guest:</strong></p>
+                                <div class="link-container">
+                                    <input type="text" id="roomLink" readonly />
+                                    <button id="copyLinkBtn" class="secondary-btn">📋 Copy Link</button>
+                                </div>
+                            </div>
+                            <div class="room-info-section">
+                                <p><strong>🔢 Or share this Room ID:</strong></p>
+                                <div class="room-id-display">
+                                    <span id="displayRoomId"></span>
+                                </div>
+                            </div>
+                            <button id="joinAsHostBtn" class="primary-btn">🎙️ Join as Host</button>
                         </div>
-                        <p><strong>Or share this Room ID:</strong></p>
-                        <div class="room-id-display">
-                            <span id="displayRoomId"></span>
-                        </div>
-                        <button id="joinAsHostBtn" class="primary-btn">Join as Host</button>
                     </div>
                 </div>
 
                 <!-- Join Room Tab -->
                 <div id="joinRoomTab" class="tab-content">
-                    <h2>Join Existing Room</h2>
-                    <div class="form-group">
-                        <label for="roomIdInput">Room ID:</label>
-                        <input type="text" id="roomIdInput" placeholder="Enter room ID" />
+                    <h2>🚪 Join Existing Room</h2>
+                    <div class="join-form-container">
+                        <div class="form-group">
+                            <label for="roomIdInput">🔢 Room ID:</label>
+                            <input type="text" id="roomIdInput" placeholder="Enter room ID" />
+                        </div>
+                        <div class="form-group">
+                            <label for="participantName">👤 Your Name:</label>
+                            <input type="text" id="participantName" placeholder="Enter your name" />
+                        </div>
+                        <button id="joinRoomBtn" class="primary-btn">🔗 Join Room</button>
+                        <div id="joinConnectionStatus" class="connection-status">🔌 Enter room ID and your name to connect</div>
                     </div>
-                    <div class="form-group">
-                        <label for="participantName">Your Name:</label>
-                        <input type="text" id="participantName" placeholder="Enter your name" />
-                    </div>
-                    <button id="joinRoomBtn" class="primary-btn">Join Room</button>
-                    <div id="joinConnectionStatus" class="connection-status">🔌 Enter room ID and your name to connect</div>
                 </div>
             </div>
         </div>
@@ -639,27 +729,29 @@
                 <div class="host-info">👤 Host: <span id="hostNameDisplay">-</span></div>
                 <div class="guest-info">👤 Guest: <span id="guestNameDisplay">-</span></div>
             </div>
-
-            <div class="audio-visualization" id="audioVisualization">
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-                <div class="visualizer-bar"></div>
-            </div>
-
-            <div class="controls">
-                <button class="mic-button" id="micButton" disabled>
-                    🎤
-                </button>
-                <button class="btn btn-danger" id="leaveRoomBtn">
-                    🚪 Leave Room
-                </button>
+            
+            <div class="audio-section">
+                <div class="audio-visualization" id="audioVisualization">
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                    <div class="visualizer-bar"></div>
+                </div>
+                
+                <div class="controls">
+                    <button class="mic-button" id="micButton" disabled>
+                        🎤
+                    </button>
+                    <button class="btn btn-danger" id="leaveRoomBtn">
+                        🚪 Leave Room
+                    </button>
+                </div>
             </div>
 
             <div class="conversation-container">
@@ -738,18 +830,38 @@
             console.log('🔧 Setting up event listeners');
             
             // Tab switching
-            document.querySelectorAll('.tab-btn').forEach(button => {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            console.log('Found tab buttons:', tabButtons.length);
+            tabButtons.forEach((button, index) => {
+                console.log(`Tab button ${index}:`, button);
                 button.addEventListener('click', function() {
+                    console.log('Tab button clicked:', this);
                     // Remove active class from all buttons and tabs
-                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        console.log('Removing active from button:', btn);
+                        btn.classList.remove('active');
+                    });
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                        console.log('Removing active from tab:', tab);
+                        tab.classList.remove('active');
+                    });
                     
                     // Add active class to clicked button
+                    console.log('Adding active to clicked button:', this);
                     this.classList.add('active');
                     
                     // Show corresponding tab content
                     const tabId = this.getAttribute('data-tab');
-                    document.getElementById(tabId).classList.add('active');
+                    console.log('Showing tab content:', tabId);
+                    // Fix the tab content selection - IDs already include 'Tab' suffix
+                    const tabContent = document.getElementById(tabId + 'Tab');
+                    if (tabContent) {
+                        console.log('Found tab content element:', tabContent);
+                        tabContent.classList.add('active');
+                    } else {
+                        console.error('Could not find tab content for:', tabId);
+                    }
+
                 });
             });
             
@@ -1340,7 +1452,13 @@
                         const audioElement = document.createElement('audio');
                         audioElement.autoplay = true;
                         audioElement.controls = false;
-                        audioElement.style.display = 'none';
+                        // Remove display: none to ensure audio can play
+                        audioElement.style.position = 'fixed';
+                        audioElement.style.bottom = '0';
+                        audioElement.style.right = '0';
+                        audioElement.style.width = '1px';
+                        audioElement.style.height = '1px';
+                        audioElement.style.opacity = '0';
                         
                         // Attach remote stream to audio element
                         if (!remoteStream) {
@@ -1481,10 +1599,14 @@
 
         function handleIceCandidate(candidate) {
             console.log('Handling ICE candidate');
-            if (peerConnection) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+            if (peerConnection && candidate) {
+                // Use the candidate object directly, not wrapped in RTCIceCandidate constructor
+                peerConnection.addIceCandidate(candidate)
+                    .then(() => {
+                        console.log('✅ ICE candidate added successfully');
+                    })
                     .catch(error => {
-                        console.error('Error adding ICE candidate:', error);
+                        console.error('❌ Error adding ICE candidate:', error);
                     });
             }
         }
@@ -1541,13 +1663,23 @@
         }
 
         async function startRecording() {
+            console.log('startRecording() called');
+            console.log('Current state:', { isRecording, localStream: !!localStream, peerConnection: !!peerConnection });
+            
             isRecording = true;
             const micButton = document.getElementById('micButton');
-            micButton.textContent = '⏹️';
-            micButton.classList.add('recording');
+            if (micButton) {
+                micButton.textContent = '⏹️';
+                micButton.classList.add('recording');
+                console.log('Updated mic button UI');
+            }
             
             // Enable visualization animation
-            document.getElementById('audioVisualization').classList.add('recording');
+            const audioVisualization = document.getElementById('audioVisualization');
+            if (audioVisualization) {
+                audioVisualization.classList.add('recording');
+                console.log('Enabled audio visualization');
+            }
             
             try {
                 // Get user media (microphone)
@@ -1565,11 +1697,13 @@
                     
                     // Create peer connection if not already created
                     if (!peerConnection) {
+                        console.log('Creating peer connection');
                         await createPeerConnection();
                     }
                     
                     // Add local stream tracks to peer connection (avoid duplicates)
                     if (localStream && peerConnection) {
+                        console.log('Adding local stream tracks to peer connection');
                         localStream.getTracks().forEach(track => {
                             // Check if track is already added
                             const sender = peerConnection.getSenders().find(s => s.track === track);
@@ -1583,10 +1717,12 @@
                     }
                     
                     // Start audio level monitoring for visualization
+                    console.log('Starting audio level monitoring');
                     startAudioLevelMonitoring();
                 }
                 
                 // Start speech recognition
+                console.log('Starting speech recognition');
                 startSpeechRecognition();
                 
                 // Update UI to show local participant is speaking
@@ -1601,6 +1737,7 @@
                     } else {
                         currentSpeaker.innerHTML = `🎙️ You are speaking...`;
                     }
+                    console.log('Updated current speaker display');
                 }
                 
                 console.log('🎙️ Microphone access successful, streaming audio via WebRTC');
@@ -1612,7 +1749,11 @@
                 return;
             }
             
-            document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> Listening...';
+            const aiResponse = document.getElementById('aiResponse');
+            if (aiResponse) {
+                aiResponse.innerHTML = '<div class="loading"></div> Listening...';
+                console.log('Updated AI response display');
+            }
             console.log('🎤 Recording started');
         }
 
@@ -1698,17 +1839,18 @@
                 
                 if (!SpeechRecognition) {
                     console.warn('⚠️ Speech Recognition not supported in this browser');
-                    // Fallback to simulated speech after delay
+                    // Fallback to simulated speech after delay with correct participant name
                     setTimeout(() => {
                         if (isRecording) {
-                            const simulatedTranscript = `This is a simulated voice message from ${participant1Name}.`;
+                            const speakerName = participant1Name || participant2Name || 'Unknown';
+                            const simulatedTranscript = `This is a simulated voice message from ${speakerName}.`;
                             console.log('🤖 Using simulated speech recognition:', simulatedTranscript);
-                            handleTranscript(simulatedTranscript, participant1Name);
+                            handleTranscript(simulatedTranscript, speakerName);
                         }
                     }, 3000);
                     return;
                 }
-                
+
                 // Create speech recognition instance
                 if (!speechRecognition) {
                     speechRecognition = new SpeechRecognition();
@@ -1734,7 +1876,9 @@
                         
                         // Handle final transcripts
                         if (finalTranscript.trim()) {
-                            handleTranscript(finalTranscript.trim(), participant1Name);
+                            // Use the correct participant name based on role
+                            const speakerName = participant1Name || participant2Name || 'Unknown';
+                            handleTranscript(finalTranscript.trim(), speakerName);
                         }
                     };
                     
@@ -1742,16 +1886,17 @@
                         console.error('❌ Speech recognition error:', event.error);
                         document.getElementById('aiResponse').innerHTML = `❌ Speech recognition error: ${event.error}`;
                         
-                        // Fallback to simulated speech
+                        // Fallback to simulated speech with correct participant name
                         setTimeout(() => {
                             if (isRecording) {
-                                const simulatedTranscript = `This is a simulated voice message from ${participant1Name}.`;
+                                const speakerName = participant1Name || participant2Name || 'Unknown';
+                                const simulatedTranscript = `This is a simulated voice message from ${speakerName}.`;
                                 console.log('🤖 Using simulated speech recognition due to error:', simulatedTranscript);
-                                handleTranscript(simulatedTranscript, participant1Name);
+                                handleTranscript(simulatedTranscript, speakerName);
                             }
                         }, 3000);
                     };
-                    
+
                     speechRecognition.onend = function() {
                         console.log('🔚 Speech recognition ended');
                         // Restart if still recording
@@ -1796,7 +1941,8 @@
             try {
                 document.getElementById('aiResponse').innerHTML = '<div class="loading"></div> AI Moderator is analyzing...';
                 
-                const response = await fetch(`${backendUrl}/api/webrtc/${roomId}/moderate`, {
+                // Fix the moderation endpoint URL
+                const response = await fetch(`${backendUrl}/api/webrtc/room/${roomId}/moderate`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1860,36 +2006,67 @@
         }
 
         function leaveRoom() {
+            console.log('.leaveRoom() called');
             // Stop recording if active
             if (isRecording) {
+                console.log('Stopping recording');
                 stopRecording();
             }
             
             // Stop local stream
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
+                console.log('Stopping local stream tracks');
+                localStream.getTracks().forEach(track => {
+                    console.log('Stopping track:', track.kind);
+                    track.stop();
+                });
             }
             
             // Close peer connection
             if (peerConnection) {
+                console.log('Closing peer connection');
                 peerConnection.close();
             }
             
             // Close socket connection
             if (socket) {
+                console.log('Closing socket connection');
                 socket.close();
             }
             
             // Clear timer
-            clearInterval(timerInterval);
+            if (timerInterval) {
+                console.log('Clearing timer interval');
+                clearInterval(timerInterval);
+            }
             
             // Reset UI
-            document.getElementById('roomScreen').classList.add('hidden');
-            document.querySelector('.screen').classList.remove('hidden');
-            document.getElementById('conversation').innerHTML = '<p style="text-align: center; color: #999;">No messages yet...</p>';
-            document.getElementById('aiResponse').innerHTML = 'Room not joined yet. Connect to start!';
+            console.log('Resetting UI');
+            const roomScreen = document.getElementById('roomScreen');
+            const mainScreen = document.querySelector('.screen');
+            
+            if (roomScreen) {
+                console.log('Hiding room screen');
+                roomScreen.classList.add('hidden');
+            }
+            
+            if (mainScreen) {
+                console.log('Showing main screen');
+                mainScreen.classList.remove('hidden');
+            }
+            
+            const conversation = document.getElementById('conversation');
+            if (conversation) {
+                conversation.innerHTML = '<p style="text-align: center; color: #999;">No messages yet...</p>';
+            }
+            
+            const aiResponse = document.getElementById('aiResponse');
+            if (aiResponse) {
+                aiResponse.innerHTML = 'Room not joined yet. Connect to start!';
+            }
             
             // Reset state
+            console.log('Resetting state variables');
             roomId = null;
             localStream = null;
             remoteStream = null;
@@ -1897,21 +2074,26 @@
             socket = null;
             isRecording = false;
             startTime = null;
+            participant1Name = '';
+            participant2Name = '';
             
             updateModeIndicator('setup');
             console.log('Left room and reset state');
         }
 
         function updateParticipantInfo() {
+            console.log('Updating participant info:', { participant1Name, participant2Name });
             const hostNameDisplay = document.getElementById('hostNameDisplay');
             const guestNameDisplay = document.getElementById('guestNameDisplay');
             
             if (hostNameDisplay) {
                 hostNameDisplay.textContent = participant1Name || '-';
+                console.log('Updated host name display:', hostNameDisplay.textContent);
             }
             
             if (guestNameDisplay) {
                 guestNameDisplay.textContent = participant2Name || '-';
+                console.log('Updated guest name display:', guestNameDisplay.textContent);
             }
         }
 
